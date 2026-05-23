@@ -1,0 +1,41 @@
+# === ТВОИ СЕКРЕТЫ (Самое важное!) ===
+appsettings.json
+appsettings.Development.json
+appsettings.Production.json
+secrets.json
+.env
+!appsettings.Example.json
+
+# === .NET 9 & Сборка ===
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+publish/
+*.nupkg
+.vs/
+.idea/
+.vscode/
+
+# === Docker & БД ===
+pgdata/
+redisdata/
+*.db
+*.sqlite
+
+# === Хлам из твоего списка (Полезное) ===
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.log
+*.tmp
+*.orig
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# === NuGet (На всякий случай) ===
+**/packages/*
+!**/packages/build/
+project.lock.json
