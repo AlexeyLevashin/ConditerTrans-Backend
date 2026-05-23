@@ -1,5 +1,4 @@
 # === ТВОИ СЕКРЕТЫ (Самое важное!) ===
-appsettings.json
 appsettings.Development.json
 appsettings.Production.json
 secrets.json
