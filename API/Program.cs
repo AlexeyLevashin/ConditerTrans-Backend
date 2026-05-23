@@ -3,7 +3,7 @@ using DataAccess;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 Console.WriteLine(builder.Configuration);
-// builder.Services.AddDataAccess(builder.Configuration);
+builder.Services.AddDataAccess(builder.Configuration);
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
