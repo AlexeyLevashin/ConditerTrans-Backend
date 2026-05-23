@@ -11,12 +11,12 @@ git fetch origin "$BRANCH"
 git reset --hard "origin/$BRANCH"
 
 echo "### docker compose up --build ..."
-docker compose up -d --build
+docker-compose up -d --build
 
 if docker compose ps --status running nginx >/dev/null 2>&1; then
   echo "### nginx reload ..."
-  docker compose exec -T nginx nginx -s reload
+  docker-compose exec -T nginx nginx -s reload
 fi
 
 echo "### done."
-docker compose ps
+docker-compose ps
