@@ -21,12 +21,5 @@ services:
       - api
     networks: [backend]
 
-  certbot:
-    image: certbot/certbot:latest
-    profiles: [certbot]
-    volumes:
-      - ./certbot/www:/var/www/certbot
-      - ./certbot/conf:/etc/letsencrypt
-
 networks:
   backend:
