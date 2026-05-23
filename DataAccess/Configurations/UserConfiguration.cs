@@ -26,6 +26,6 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.IsAdmin)
             .IsRequired();
 
-        builder.Ignore(u => u.Role);
+        builder.Ignore(u => u.UserRole);
     }
 }

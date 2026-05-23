@@ -15,5 +15,6 @@ public class User
     [Column("password_hash")]
     public string PasswordHash { get; set; }
     [Column("role")]
-    public Role Role { get; set; }
+    public UserRole UserRole { get; set; }
+    public Employee Employee { get; set; }
 }

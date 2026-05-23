@@ -32,4 +32,6 @@ public class Company
 
     [Column("company_type")]
     public CompanyType CompanyType { get; set; }
+
+    public List<Employee> Employees { get; set; } = new();
 }
