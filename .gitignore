@@ -1,6 +1,4 @@
-appsettings.json
 appsettings.Development.json
-appsettings.Production.json
 secrets.json
 .env
 !appsettings.Example.json
