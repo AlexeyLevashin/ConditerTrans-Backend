@@ -1,37 +1,25 @@
 services:
-  postgres:
-    image: postgres:latest
-    container_name: conditertrans-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: conditertrans
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d conditertrans"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
   api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: conditertrans-api
+    build: .
     restart: unless-stopped
-    ports:
-      - "8080:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=conditertrans;Username=postgres;Password=postgres
-    depends_on:
-      postgres:
-        condition: service_healthy
+    networks: [backend]
 
-volumes:
-  pgdata:
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./certbot/www:/var/www/certbot:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+    depends_on:
+      - api
+    networks: [backend]
+
+networks:
+  backend:

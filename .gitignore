@@ -19,6 +19,10 @@ publish/
 
 # === Docker & БД ===
 pgdata/
+certbot/conf/*
+!certbot/conf/.gitkeep
+certbot/www/*
+!certbot/www/.gitkeep
 redisdata/
 *.db
 *.sqlite
