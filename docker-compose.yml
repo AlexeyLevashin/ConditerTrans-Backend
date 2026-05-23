@@ -1,10 +1,29 @@
 services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: conditertrans
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d conditertrans"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks: [backend]
+
   api:
     build: .
     restart: unless-stopped
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks: [backend]
 
   nginx:
@@ -20,6 +39,9 @@ services:
     depends_on:
       - api
     networks: [backend]
+
+volumes:
+  pgdata:
 
 networks:
   backend:
