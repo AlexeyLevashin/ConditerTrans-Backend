@@ -11,6 +11,4 @@ public class Employee
     public DateTime CreatedAt { get; set; }
     public Guid CompanyId { get; set; }
     public virtual Company Company { get; set; }
-    public virtual ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
-    public virtual ICollection<User> Users { get; set; } = new List<User>();
 }

@@ -2,5 +2,7 @@
 
 public enum CompanyType
 {
-    
+    PurchasingCompany,
+    ProductionDispatcher,
+    LogisticCompany
 }
