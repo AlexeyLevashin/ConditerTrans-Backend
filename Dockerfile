@@ -5,6 +5,7 @@ COPY ConditerTrans.sln ./
 COPY API/API.csproj API/
 COPY Application/Application.csproj Application/
 COPY Common/Common.csproj Common/
+COPY Contracts/Contracts.csproj Contracts/
 COPY DataAccess/DataAccess.csproj DataAccess/
 COPY Domain/Domain.csproj Domain/
 COPY Infrastructure/Infrastructure.csproj Infrastructure/
@@ -19,6 +20,7 @@ WORKDIR /app
 EXPOSE 8080
 
 ENV ASPNETCORE_ENVIRONMENT=Production
+ENV ASPNETCORE_URLS=http://+:8080
 
 COPY --from=build /app/publish .
 ENTRYPOINT ["dotnet", "API.dll"]
