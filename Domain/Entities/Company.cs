@@ -7,7 +7,7 @@ namespace Domain.Entities;
 public class Company
 {
     [Column("id")]
-    public Guid Id { get; set; } = Guid.CreateVersion7();
+    public Guid Id { get; set; }
 
     [Column("inn")]
     public string Inn { get; set; }
@@ -32,4 +32,6 @@ public class Company
 
     [Column("company_type")]
     public CompanyType CompanyType { get; set; }
+
+    public List<Employee> Employees { get; set; } = new();
 }

@@ -1,6 +1,6 @@
 ﻿namespace Common.Enums;
 
-public enum Role
+public enum UserRole
 {
     PurchasingManager,
     ManufacturerDispatcher,
