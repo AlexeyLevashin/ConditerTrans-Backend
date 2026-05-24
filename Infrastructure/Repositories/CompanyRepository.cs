@@ -16,4 +16,12 @@ public class CompanyRepository(AppDbContext context) : ICompanyRepository
     {
         return context.Companies.FirstOrDefaultAsync(company => company.Id == companyId);
     }
+
+    public Task<Company?> GetByUserIdAsync(Guid userId)
+    {
+        return context.Users
+            .Where(u => u.Id == userId)
+            .Select(u => u.Employee.Company)
+            .FirstOrDefaultAsync();
+    }
 }

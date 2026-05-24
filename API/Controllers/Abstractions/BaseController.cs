@@ -1,15 +1,18 @@
-﻿using API.DependencyInjections;
+﻿using System.Security.Claims;
+using API.DependencyInjections;
 using Common.Enums;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 
 namespace API.Controllers.Abstractions;
 
 [ApiController]
-[Authorize]
-public abstract class BaseController : ControllerBase
+public abstract class BaseController(TokenValidationParameters tokenValidationParameters) : ControllerBase
 {
-    protected Guid UserId => User.GetUserId();
+    private ClaimsPrincipal Principal =>
+        Request.GetPrincipalFromAuthorizationHeader(tokenValidationParameters);
 
-    protected UserRole UserRole => User.GetUserRole();
+    protected Guid UserId => Principal.GetUserId();
+    protected UserRole UserRole => Principal.GetUserRole();
+    protected string Email => Principal.GetUserEmail();
 }

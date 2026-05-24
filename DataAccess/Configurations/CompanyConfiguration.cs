@@ -12,6 +12,11 @@ public class CompanyConfiguration : IEntityTypeConfiguration<Company>
 
         builder.HasKey(c => c.Id);
 
+        builder.Property(c => c.Id)
+            .HasColumnType("uuid")
+            .ValueGeneratedOnAdd()
+            .HasDefaultValueSql("gen_random_uuid()");
+
         builder.Property(c => c.Inn)
             .IsRequired()
             .HasMaxLength(12);

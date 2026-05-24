@@ -1,3 +1,4 @@
+using API.DependencyInjections;
 using Application;
 using DataAccess;
 using Infrastructure.DependencyInjections;
@@ -5,7 +6,7 @@ using Infrastructure.DependencyInjections;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddDataAccess(builder.Configuration);
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerConfiguration();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 

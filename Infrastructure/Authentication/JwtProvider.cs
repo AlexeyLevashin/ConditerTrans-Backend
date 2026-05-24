@@ -17,8 +17,8 @@ public class JwtProvider(IOptions<JwtOptions> jwtOptions, TokenValidationParamet
     {
         var claims = new List<Claim>
         {
-            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new(ClaimTypes.Email, user.Email),
+            new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new(JwtRegisteredClaimNames.Email, user.Email),
             new(ClaimTypes.Role, user.UserRole.ToString()),
         }; 
         
