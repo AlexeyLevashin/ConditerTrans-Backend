@@ -17,15 +17,32 @@ public static class DependencyInjection
     {
         services.AddScoped<IJwtProvider, JwtProvider>();
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+        services.AddScoped<ICompanyRepository, CompanyRepository>();
+        services.AddScoped<IPasswordService, PasswordService>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
-        services.AddAuthentication(configuration);
+        services.AddJwtAuthentication(configuration);
         return services;
     }
-    
-    public static IServiceCollection AddAuthentication(this IServiceCollection services, IConfiguration configuration)
+
+    public static IServiceCollection AddJwtAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
-        var jwtSettings = configuration.GetSection("JwtSettings");
-        services.Configure<JwtOptions>(jwtSettings);
+        var jwtOptions = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
+            ?? throw new InvalidOperationException(
+                $"Секция '{JwtOptions.SectionName}' не найдена. Добавь её в appsettings.json.");
+
+        if (string.IsNullOrWhiteSpace(jwtOptions.SecretKey))
+        {
+            throw new InvalidOperationException(
+                $"JwtSettings:SecretKey не задан. Скопируй appsettings.Example.json → appsettings.Development.json.");
+        }
+
+        if (string.IsNullOrWhiteSpace(jwtOptions.Issuer) || string.IsNullOrWhiteSpace(jwtOptions.Audience))
+        {
+            throw new InvalidOperationException("JwtSettings:Issuer и JwtSettings:Audience обязательны.");
+        }
+
+        services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
 
         var tokenValidationParameters = new TokenValidationParameters
         {
@@ -33,17 +50,14 @@ public static class DependencyInjection
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-
-            ValidIssuer = jwtSettings["Issuer"],
-            ValidAudience = jwtSettings["Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]!)),
-            //ClockSkew = TimeSpan.Zero
+            ValidIssuer = jwtOptions.Issuer,
+            ValidAudience = jwtOptions.Audience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SecretKey)),
             ClockSkew = TimeSpan.FromMinutes(1)
         };
 
         services.AddSingleton(tokenValidationParameters);
-        
+
         services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -52,21 +66,11 @@ public static class DependencyInjection
             })
             .AddJwtBearer(options =>
             {
-                options.TokenValidationParameters = tokenValidationParameters; 
-                options.Events = new JwtBearerEvents
-                {
-                    OnMessageReceived = context =>
-                    {
-                        var accessToken = context.Request.Query["access_token"];
-                        var path = context.HttpContext.Request.Path;
-                        if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs/requests"))
-                        {
-                            context.Token = accessToken;
-                        }
-                        return Task.CompletedTask;
-                    }
-                };
+                options.TokenValidationParameters = tokenValidationParameters;
             });
+
+        services.AddAuthorization();
+
         return services;
     }
 }

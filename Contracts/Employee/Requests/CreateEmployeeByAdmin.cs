@@ -1,7 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using Common.Enums;
 
-namespace API.Contracts.Employee.Requests;
+namespace Contracts.Employee.Requests;
 
 public class CreateEmployeeByAdmin
 {
@@ -18,9 +17,4 @@ public class CreateEmployeeByAdmin
     [Required(ErrorMessage = "Email не может быть пустым")]
     [EmailAddress(ErrorMessage = "Неверный формат email")]
     public string Email { get; set; }
-
-    [Required(ErrorMessage = "Роль обязательна для выбора")]
-    [EnumDataType(typeof(UserRole), ErrorMessage = "Указана недопустимая роль.")]
-    public UserRole Role { get; set; }
-    public Guid? InstitutionId { get; set; }
 }

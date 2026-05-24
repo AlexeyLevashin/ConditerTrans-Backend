@@ -12,15 +12,14 @@ namespace Infrastructure.Authentication;
 public class JwtProvider(IOptions<JwtOptions> jwtOptions, TokenValidationParameters tokenValidationParameters) : IJwtProvider
 {
     private readonly JwtOptions _options = jwtOptions.Value;
-    private readonly TokenValidationParameters _tokenValidationParameters = tokenValidationParameters;
 
     public string GenerateAccessToken(User user)
     {
         var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Email, user.Email),
-            new Claim(ClaimTypes.Role, user.UserRole.ToString()),
+            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new(ClaimTypes.Email, user.Email),
+            new(ClaimTypes.Role, user.UserRole.ToString()),
         }; 
         
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.SecretKey));
@@ -45,8 +44,8 @@ public class JwtProvider(IOptions<JwtOptions> jwtOptions, TokenValidationParamet
     {
         var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim("TokenType", "Refresh")
+            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new("TokenType", "Refresh")
         };
 
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.SecretKey));
@@ -73,7 +72,7 @@ public class JwtProvider(IOptions<JwtOptions> jwtOptions, TokenValidationParamet
 
         try
         {
-            var principal = tokenHandler.ValidateToken(refreshToken, _tokenValidationParameters, out SecurityToken validatedToken);
+            var principal = tokenHandler.ValidateToken(refreshToken, tokenValidationParameters, out SecurityToken validatedToken);
 
             if (validatedToken is not JwtSecurityToken jwtSecurityToken ||
                 !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))

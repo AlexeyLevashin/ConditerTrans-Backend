@@ -26,6 +26,16 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.IsAdmin)
             .IsRequired();
 
-        builder.Ignore(u => u.UserRole);
+        builder.Property(u => u.UserRole)
+            .HasConversion<int>()
+            .IsRequired();
+
+        builder.Property(u => u.EmployeeId)
+            .IsRequired();
+
+        builder.HasOne(u => u.Employee)
+            .WithOne()
+            .HasForeignKey<User>(u => u.EmployeeId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
