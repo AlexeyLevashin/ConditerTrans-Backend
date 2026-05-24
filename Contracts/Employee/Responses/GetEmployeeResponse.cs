@@ -1,4 +1,4 @@
-﻿namespace API.Contracts.Employee.Responses;
+﻿namespace Contracts.Employee.Responses;
 
 public class GetEmployeeResponse
 {

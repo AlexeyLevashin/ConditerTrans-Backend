@@ -94,10 +94,7 @@ namespace DataAccess.Migrations
                     b.Property<Guid>("CompanyId")
                         .HasColumnType("uuid")
                         .HasColumnName("company_id");
-
-                    b.Property<Guid?>("CompanyId1")
-                        .HasColumnType("uuid");
-
+                    
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -128,8 +125,6 @@ namespace DataAccess.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CompanyId");
-
-                    b.HasIndex("CompanyId1");
 
                     b.ToTable("employees");
                 });
@@ -179,14 +174,10 @@ namespace DataAccess.Migrations
             modelBuilder.Entity("Domain.Entities.Employee", b =>
                 {
                     b.HasOne("Domain.Entities.Company", "Company")
-                        .WithMany()
+                        .WithMany("Employees")
                         .HasForeignKey("CompanyId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("Domain.Entities.Company", null)
-                        .WithMany("Employees")
-                        .HasForeignKey("CompanyId1");
 
                     b.Navigation("Company");
                 });

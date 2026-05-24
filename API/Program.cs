@@ -1,7 +1,7 @@
-using API.DependencyInjections;
+using API;
 using Application;
 using DataAccess;
-using Infrastructure.DependencyInjections;
+using Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();

@@ -53,7 +53,7 @@ public class CompanyConfiguration : IEntityTypeConfiguration<Company>
             .HasConversion<int>()
             .IsRequired();
 
-        builder.HasMany<Employee>()
+        builder.HasMany(c => c.Employees)
             .WithOne(e => e.Company)
             .HasForeignKey(e => e.CompanyId)
             .OnDelete(DeleteBehavior.Restrict);
