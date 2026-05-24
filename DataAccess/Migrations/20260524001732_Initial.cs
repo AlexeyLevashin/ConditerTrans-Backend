@@ -41,17 +41,11 @@ namespace DataAccess.Migrations
                     name = table.Column<string>(type: "text", nullable: false),
                     patronymic = table.Column<string>(type: "text", nullable: true),
                     created_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    company_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    CompanyId1 = table.Column<Guid>(type: "uuid", nullable: true)
+                    company_id = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_employees", x => x.id);
-                    table.ForeignKey(
-                        name: "FK_employees_companies_CompanyId1",
-                        column: x => x.CompanyId1,
-                        principalTable: "companies",
-                        principalColumn: "id");
                     table.ForeignKey(
                         name: "FK_employees_companies_company_id",
                         column: x => x.company_id,
@@ -98,11 +92,6 @@ namespace DataAccess.Migrations
                 name: "IX_employees_company_id",
                 table: "employees",
                 column: "company_id");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_employees_CompanyId1",
-                table: "employees",
-                column: "CompanyId1");
 
             migrationBuilder.CreateIndex(
                 name: "IX_users_email",

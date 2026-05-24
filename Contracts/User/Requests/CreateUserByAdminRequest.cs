@@ -1,4 +1,4 @@
-﻿namespace API.Contracts.User.Requests;
+﻿namespace Contracts.User.Requests;
 
 public class CreateUserByAdminRequest
 {

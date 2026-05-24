@@ -1,8 +1,11 @@
-﻿namespace Common.Enums;
+﻿using System.Text.Json.Serialization;
 
+namespace Common.Enums;
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum UserRole
 {
-    PurchasingManager,
-    ManufacturerDispatcher,
-    LogisticCoordinator
+    Manager,
+    Dispatcher,
+    Coordinator
 }

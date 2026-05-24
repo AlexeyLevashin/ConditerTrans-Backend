@@ -1,5 +1,5 @@
-﻿using Application.Common.Interfaces;
-using Application.Intefaces;
+﻿using Application.Common.Interfaces.Persistence.Repositories;
+using Application.Common.Interfaces.Services;
 using Contracts.Company.Responses;
 using Domain.Entities;
 
