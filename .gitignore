@@ -1,6 +1,4 @@
-appsettings.json
 appsettings.Development.json
-appsettings.Production.json
 secrets.json
 .env
 !appsettings.Example.json
@@ -16,6 +14,10 @@ publish/
 .vscode/
 
 pgdata/
+certbot/conf/*
+!certbot/conf/.gitkeep
+certbot/www/*
+!certbot/www/.gitkeep
 redisdata/
 *.db
 *.sqlite
