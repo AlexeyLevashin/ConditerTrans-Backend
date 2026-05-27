@@ -22,6 +22,11 @@ public class JwtProvider(IOptions<JwtOptions> jwtOptions, TokenValidationParamet
             new(ClaimTypes.Role, user.UserRole.ToString()),
         }; 
         
+        if (user.Employee.CompanyId != Guid.Empty)
+        {
+            claims.Add(new Claim("CompanyId", user.Employee.CompanyId.ToString()));
+        }
+        
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.SecretKey));
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 

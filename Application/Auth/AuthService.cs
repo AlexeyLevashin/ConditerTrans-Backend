@@ -15,7 +15,8 @@ public class AuthService(
     IUserRepository userRepository,
     IUnitOfWork unitOfWork,
     IPasswordService passwordService,
-    IJwtProvider jwtProvider) : IAuthService
+    IJwtProvider jwtProvider,
+    IInvitationRepository invitationRepository) : IAuthService
 {
     private const string LoginFailureError = "Неверный логин или пароль";
     private const string ParseTokenFailureError = "Невалидный refresh token";
@@ -89,6 +90,37 @@ public class AuthService(
         return Result.Ok(GetTokensResponseByUser(user));
     }
 
+    public async Task<Result<TokensResponse>> SetPasswordAsync(SetPasswordRequest request)
+    {
+        var invitation = await invitationRepository.GetByIdWithUserAsync(request.InviteId);
+    
+        if (invitation is null)
+        {
+            return Result.Fail("Приглашение не найдено");
+        }
+    
+        if (invitation.IsUsed)
+        {
+            return Result.Fail("Эта ссылка уже была использована. Обратитесь к администратору.");
+        }
+    
+        if (invitation.ExpiresAt < DateTime.UtcNow)
+        {
+            return Result.Fail("Срок действия ссылки истек. Запросите новое приглашение.");
+        }
+    
+        var user = invitation.User;
+        user.PasswordHash = passwordService.Hash(request.Password);
+    
+        invitation.IsUsed = true;
+    
+        await unitOfWork.SaveChangesAsync();
+    
+        var tokens = GetTokensResponseByUser(user);
+    
+        return Result.Ok(tokens);
+    }
+    
     private TokensResponse GetTokensResponseByUser(User user) => new()
     {
         AccessToken = jwtProvider.GenerateAccessToken(user),
