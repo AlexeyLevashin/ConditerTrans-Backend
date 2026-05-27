@@ -1,4 +1,5 @@
 using API;
+using API.Middlewares;
 using Application;
 using DataAccess;
 using Infrastructure;
@@ -9,6 +10,7 @@ builder.Services.AddDataAccess(builder.Configuration);
 builder.Services.AddSwaggerConfiguration();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddTransient<ExceptionHandlingMiddlewares>();
 
 var app = builder.Build();
 
@@ -18,6 +20,8 @@ app.UseSwaggerUI(options =>
     options.SwaggerEndpoint("/swagger/v1/swagger.json", "ConditerTrans API v1");
     options.RoutePrefix = "swagger";
 });
+
+app.UseMiddleware<ExceptionHandlingMiddlewares>();
 
 app.UseAuthentication();
 app.UseAuthorization();
