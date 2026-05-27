@@ -19,6 +19,7 @@ app.UseSwaggerUI(options =>
 {
     options.SwaggerEndpoint("/swagger/v1/swagger.json", "ConditerTrans API v1");
     options.RoutePrefix = "swagger";
+    app.UseCors("AllowLocalFront");
 });
 
 app.UseMiddleware<ExceptionHandlingMiddlewares>();

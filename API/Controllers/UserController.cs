@@ -1,5 +1,7 @@
 ﻿using API.Controllers.Abstractions;
 using Application.Common.Interfaces.Services;
+using Contracts.User.Requests;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers;
@@ -18,5 +20,18 @@ public class UserController(IUserService userService) : BaseController
         }
 
         return Ok(result.Value);
+    }
+    
+    [HttpPost("admin-invite")]
+    public async Task<IActionResult> InviteUser(CreateUserByAdminRequest request)
+    {
+        var result = await userService.AddByAdminAsync(request, UserId, CompanyId);
+
+        if (result.IsSuccess)
+        {
+            return Ok(new { InviteLink = result.Value });
+        }
+
+        return BadRequest(new { Error = result.Errors.FirstOrDefault() });
     }
 }
