@@ -1,11 +1,13 @@
 ﻿using System.Security.Claims;
 using API.Extensions;
 using Common.Enums;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers.Abstractions;
 
 [ApiController]
+[Authorize]
 public abstract class BaseController : ControllerBase
 {
     private List<Claim> Claims => Request.GetPrincipalFromAuthorizationHeader().ToList();

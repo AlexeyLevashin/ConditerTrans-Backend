@@ -52,7 +52,17 @@ public class AuthService(
     {
         var user = await userRepository.GetByEmailAsync(request.Email);
 
-        if (user is null || !passwordService.Verify(request.Password, user.PasswordHash))
+        if (user is null)
+        {
+            return Result.Fail(LoginFailureError);
+        }
+        
+        if (string.IsNullOrWhiteSpace(user.PasswordHash))
+        {
+            return Result.Fail("Аккаунт еще не активирован. Пожалуйста, перейдите по ссылке из приглашения и установите пароль.");
+        }
+        
+        if (!passwordService.Verify(request.Password, user.PasswordHash))
         {
             return Result.Fail(LoginFailureError);
         }
@@ -113,12 +123,10 @@ public class AuthService(
         user.PasswordHash = passwordService.Hash(request.Password);
     
         invitation.IsUsed = true;
-    
+
         await unitOfWork.SaveChangesAsync();
     
-        var tokens = GetTokensResponseByUser(user);
-    
-        return Result.Ok(tokens);
+        return Result.Ok(GetTokensResponseByUser(user));
     }
     
     private TokensResponse GetTokensResponseByUser(User user) => new()

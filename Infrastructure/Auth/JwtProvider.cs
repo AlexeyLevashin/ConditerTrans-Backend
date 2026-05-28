@@ -22,7 +22,7 @@ public class JwtProvider(IOptions<JwtOptions> jwtOptions, TokenValidationParamet
             new(ClaimTypes.Role, user.UserRole.ToString()),
         }; 
         
-        if (user.Employee.CompanyId != Guid.Empty)
+        if (user.Employee?.CompanyId != null && user.Employee.CompanyId != Guid.Empty)
         {
             claims.Add(new Claim("CompanyId", user.Employee.CompanyId.ToString()));
         }
@@ -33,7 +33,7 @@ public class JwtProvider(IOptions<JwtOptions> jwtOptions, TokenValidationParamet
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),
-            Expires = DateTime.UtcNow.AddMinutes(_options.AccessTokenExpiresMinutes),
+            Expires = DateTime.UtcNow.AddDays(_options.AccessTokenExpiresDays),
             Issuer = _options.Issuer,
             Audience = _options.Audience,
             SigningCredentials = credentials

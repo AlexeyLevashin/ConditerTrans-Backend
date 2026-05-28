@@ -16,6 +16,7 @@ public class InvitationRepository(AppDbContext context) : IInvitationRepository
     {
         return await context.UserInvitations
             .Include(i => i.User) 
+                .ThenInclude(e => e.Employee)
             .FirstOrDefaultAsync(i => i.Id == id); 
     }
 }

@@ -50,29 +50,19 @@ public class UserService(IUserRepository userRepository, IInvitationRepository i
         {
             return Result.Fail("Сотрудник с таким номером телефона уже существует");
         }
+
+        var employee = request.Adapt<Employee>();
+        employee.CompanyId = adminCompanyId;
+        employee.CreatedAt = DateTime.UtcNow;
+
+        var user = request.Adapt<User>();
+        user.UserRole = admin.UserRole;
+        user.IsAdmin = false;
+        user.PasswordHash = string.Empty;
+        user.Employee = employee;
         
-        var employee = new Employee
-        {
-            Name = request.Name,
-            Surname = request.Surname,
-            Patronymic = request.Patronymic,
-            Phone = request.Phone,
-            CompanyId = adminCompanyId,
-            CreatedAt = DateTime.UtcNow 
-        };
-
-        var user = new User
-        {
-            Email = request.Email,
-            UserRole = request.UserRole,
-            IsAdmin = false,
-            PasswordHash = string.Empty, 
-            Employee = employee
-        };
-
         var invitation = new UserInvitation
         {
-            Id = Guid.NewGuid(),
             User = user,
             ExpiresAt = DateTime.UtcNow.AddDays(3),
             IsUsed = false
@@ -84,7 +74,7 @@ public class UserService(IUserRepository userRepository, IInvitationRepository i
         
         await unitOfWork.SaveChangesAsync();
 
-        var inviteLink = $"https://conditertrans.ru/set-password?inviteId={invitation.Id:N}";
+        var inviteLink = $"https://conditertrans.ru/set-password?inviteId={invitation.Id}";
     
         return Result.Ok(inviteLink);
     }
