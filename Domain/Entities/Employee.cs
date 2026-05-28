@@ -12,7 +12,7 @@ public class Employee
     public string Phone { get; set; }
 
     [Column("employee_number")]
-    public int EmployeeNumber { get; set; }
+    public string EmployeeNumber { get; set; }
 
     [Column("surname")]
     public string Surname { get; set; }

@@ -4,6 +4,6 @@ namespace Contracts.Auth.Requests;
 
 public class RefreshTokenRequest
 {
-    [Required]
+    [Required (ErrorMessage = "Токен не может быть пустым")]
     public string RefreshToken { get; set; } = null!;
 }
