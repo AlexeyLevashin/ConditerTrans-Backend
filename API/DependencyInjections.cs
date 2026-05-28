@@ -1,4 +1,6 @@
-﻿using Microsoft.OpenApi;
+﻿using System;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.OpenApi.Models;
 
 namespace API;
 
@@ -12,16 +14,26 @@ public static class DependencyInjections
             options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
             {
                 Name = "Authorization",
-                Description = "JWT Authorization header. Введите токен.",
+                Description = "Введите СЮДА ТОЛЬКО САМ ТОКЕН (без слова Bearer)",
                 In = ParameterLocation.Header,
                 Type = SecuritySchemeType.Http,
                 Scheme = "Bearer",
                 BearerFormat = "JWT"
             });
-            
-            options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+        
+            options.AddSecurityRequirement(new OpenApiSecurityRequirement
             {
-                [new OpenApiSecuritySchemeReference("Bearer", document)] = []
+                {
+                    new OpenApiSecurityScheme
+                    {
+                        Reference = new OpenApiReference
+                        {
+                            Type = ReferenceType.SecurityScheme,
+                            Id = "Bearer"
+                        }
+                    },
+                    Array.Empty<string>()
+                }
             });
         });
 

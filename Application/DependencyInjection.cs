@@ -1,4 +1,5 @@
 using Application.Auth;
+using Application.Common.Interfaces.Persistence.Repositories;
 using Application.Common.Interfaces.Services;
 using Application.Companies;
 using Application.Users;

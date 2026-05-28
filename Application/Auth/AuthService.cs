@@ -15,7 +15,8 @@ public class AuthService(
     IUserRepository userRepository,
     IUnitOfWork unitOfWork,
     IPasswordService passwordService,
-    IJwtProvider jwtProvider) : IAuthService
+    IJwtProvider jwtProvider,
+    IInvitationRepository invitationRepository) : IAuthService
 {
     private const string LoginFailureError = "Неверный логин или пароль";
     private const string ParseTokenFailureError = "Невалидный refresh token";
@@ -51,7 +52,17 @@ public class AuthService(
     {
         var user = await userRepository.GetByEmailAsync(request.Email);
 
-        if (user is null || !passwordService.Verify(request.Password, user.PasswordHash))
+        if (user is null)
+        {
+            return Result.Fail(LoginFailureError);
+        }
+        
+        if (string.IsNullOrWhiteSpace(user.PasswordHash))
+        {
+            return Result.Fail("Аккаунт еще не активирован. Пожалуйста, перейдите по ссылке из приглашения и установите пароль.");
+        }
+        
+        if (!passwordService.Verify(request.Password, user.PasswordHash))
         {
             return Result.Fail(LoginFailureError);
         }
@@ -89,6 +100,35 @@ public class AuthService(
         return Result.Ok(GetTokensResponseByUser(user));
     }
 
+    public async Task<Result<TokensResponse>> SetPasswordAsync(SetPasswordRequest request)
+    {
+        var invitation = await invitationRepository.GetByIdWithUserAsync(request.InviteId);
+    
+        if (invitation is null)
+        {
+            return Result.Fail("Приглашение не найдено");
+        }
+    
+        if (invitation.IsUsed)
+        {
+            return Result.Fail("Эта ссылка уже была использована. Обратитесь к администратору.");
+        }
+    
+        if (invitation.ExpiresAt < DateTime.UtcNow)
+        {
+            return Result.Fail("Срок действия ссылки истек. Запросите новое приглашение.");
+        }
+    
+        var user = invitation.User;
+        user.PasswordHash = passwordService.Hash(request.Password);
+    
+        invitation.IsUsed = true;
+
+        await unitOfWork.SaveChangesAsync();
+    
+        return Result.Ok(GetTokensResponseByUser(user));
+    }
+    
     private TokensResponse GetTokensResponseByUser(User user) => new()
     {
         AccessToken = jwtProvider.GenerateAccessToken(user),

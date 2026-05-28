@@ -53,4 +53,17 @@ public class AuthController : ControllerBase
 
         return Ok(result.Value);
     }
+    
+    [HttpPost("set-password")]
+    public async Task<IActionResult> SetPassword([FromBody] SetPasswordRequest request)
+    {
+        var result = await _authService.SetPasswordAsync(request);
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value); 
+        }
+
+        return BadRequest(new { Error = result.Errors.FirstOrDefault() });
+    }
 }

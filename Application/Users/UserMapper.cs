@@ -1,3 +1,4 @@
+using Contracts.User.Requests;
 using Contracts.User.Responses;
 using Domain.Entities;
 
