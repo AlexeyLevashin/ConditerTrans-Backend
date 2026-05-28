@@ -12,7 +12,7 @@ builder.Services.AddDataAccess(builder.Configuration);
 builder.Services.AddSwaggerConfiguration();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration); 
-//builder.Services.AddTransient<ExceptionHandlingMiddlewares>();
+builder.Services.AddTransient<ExceptionHandlingMiddlewares>();
 
 builder.Services.AddCors(options =>
 {
@@ -33,7 +33,7 @@ app.UseSwaggerUI(options =>
     options.RoutePrefix = "swagger";
 });
 
-//app.UseMiddleware<ExceptionHandlingMiddlewares>();
+app.UseMiddleware<ExceptionHandlingMiddlewares>();
 
 app.UseCors("AllowAll");
 app.UseAuthentication();
