@@ -4,6 +4,10 @@
       <ProjectReference Include="..\Common\Common.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Employee\Requests\" />
+    </ItemGroup>
+
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
