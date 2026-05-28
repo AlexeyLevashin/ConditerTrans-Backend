@@ -1,3 +1,4 @@
+using Contracts.Employee.Responses;
 using Contracts.User.Requests;
 using Contracts.User.Responses;
 using Domain.Entities;
@@ -12,6 +13,16 @@ internal static class UserMapper
         Email = user.Email,
         UserRole = user.UserRole,
         IsAdmin = user.IsAdmin,
-        EmployeeId = user.EmployeeId
+        EmployeeId = user.EmployeeId,
+    
+        Employee = user.Employee != null ? new EmployeeResponse
+        {
+            Name = user.Employee.Name,
+            Surname = user.Employee.Surname,
+            Patronymic = user.Employee.Patronymic,
+            Phone = user.Employee.Phone,
+            EmployeeNumber = user.Employee.EmployeeNumber,
+            CompanyId = user.Employee.CompanyId 
+        } : null
     };
 }

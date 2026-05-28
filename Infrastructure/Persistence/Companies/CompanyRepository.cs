@@ -21,13 +21,13 @@ public class CompanyRepository(AppDbContext context) : ICompanyRepository
     {
         return context.Users
             .Where(u => u.Id == userId)
-            .Select(u => u.Employee.Company)
+            .Select(u => u.Employee!.Company)
             .FirstOrDefaultAsync();
     }
 
     public Task<bool> GetAdminInCompanyExistAsync(Guid companyId)
     {
         return context.Users
-            .AnyAsync(u => u.IsAdmin && u.Employee.CompanyId == companyId);
+            .AnyAsync(u => u.IsAdmin && u.Employee!.CompanyId == companyId);
     }
 }

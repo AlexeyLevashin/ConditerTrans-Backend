@@ -20,5 +20,5 @@ public class User
     [Column("employee_id")]
     public Guid EmployeeId { get; set; }
 
-    public Employee Employee { get; set; } = null!;
+    public Employee? Employee { get; set; } = null!;
 }
