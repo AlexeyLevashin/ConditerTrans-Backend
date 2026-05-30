@@ -15,17 +15,23 @@ public class ProductRepository(AppDbContext context) : IProductRepository
             .FirstOrDefaultAsync(p => p.Id == id);
     }
 
-    public Task<List<Product>> GetAllProductsAsync(List<Guid>? companyIds, List<Guid>? categoryIds)
+    public async Task<List<Product>> GetAllProductsAsync(List<Guid>? companyIds, List<Guid>? categoryIds)
     {
-        throw new NotImplementedException();
-        // IQueryable<Product> query = context.Products
-        //     .AsNoTracking()
-        //     .Include(c => c.Company)
-        //     .Include(ct => ct.Category);
-        //
-        // if (companyIds is not null)
-        // {
-        //     query = query.Where(c => c.Id )
-        // }
+        IQueryable<Product> query = context.Products
+            .AsNoTracking()
+            .Include(c => c.Company)
+            .Include(ct => ct.Category);
+         
+        if (companyIds != null && companyIds.Any())
+        {
+            query = query.Where(c => companyIds.Contains(c.CompanyId));
+        }
+
+        if (categoryIds != null && categoryIds.Any())
+        {
+            query = query.Where(ct => categoryIds.Contains(ct.CategoryId));
+        }
+
+        return await query.ToListAsync();
     }
 }
