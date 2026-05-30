@@ -1,0 +1,190 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v10.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v10.0": {
+      "Application/1.0.0": {
+        "dependencies": {
+          "Contracts": "1.0.0",
+          "Domain": "1.0.0",
+          "FluentResults": "4.0.0",
+          "Mapster": "10.0.7",
+          "Microsoft.Extensions.Configuration.Abstractions": "10.0.8",
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.8"
+        },
+        "runtime": {
+          "Application.dll": {}
+        }
+      },
+      "FluentResults/4.0.0": {
+        "dependencies": {
+          "Microsoft.Extensions.Logging.Abstractions": "2.1.1"
+        },
+        "runtime": {
+          "lib/net9.0/FluentResults.dll": {
+            "assemblyVersion": "4.0.0.0",
+            "fileVersion": "4.0.0.0"
+          }
+        }
+      },
+      "Mapster/10.0.7": {
+        "dependencies": {
+          "Mapster.Core": "10.0.7"
+        },
+        "runtime": {
+          "lib/net10.0/Mapster.dll": {
+            "assemblyVersion": "10.0.7.0",
+            "fileVersion": "10.0.7.0"
+          }
+        }
+      },
+      "Mapster.Core/10.0.7": {
+        "runtime": {
+          "lib/netstandard2.0/Mapster.Core.dll": {
+            "assemblyVersion": "10.0.7.0",
+            "fileVersion": "10.0.7.0"
+          }
+        }
+      },
+      "Microsoft.Extensions.Configuration.Abstractions/10.0.8": {
+        "dependencies": {
+          "Microsoft.Extensions.Primitives": "10.0.8"
+        },
+        "runtime": {
+          "lib/net10.0/Microsoft.Extensions.Configuration.Abstractions.dll": {
+            "assemblyVersion": "10.0.0.0",
+            "fileVersion": "10.0.826.23019"
+          }
+        }
+      },
+      "Microsoft.Extensions.DependencyInjection.Abstractions/10.0.8": {
+        "runtime": {
+          "lib/net10.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll": {
+            "assemblyVersion": "10.0.0.0",
+            "fileVersion": "10.0.826.23019"
+          }
+        }
+      },
+      "Microsoft.Extensions.Logging.Abstractions/2.1.1": {
+        "runtime": {
+          "lib/netstandard2.0/Microsoft.Extensions.Logging.Abstractions.dll": {
+            "assemblyVersion": "2.1.1.0",
+            "fileVersion": "2.1.1.18157"
+          }
+        }
+      },
+      "Microsoft.Extensions.Primitives/10.0.8": {
+        "runtime": {
+          "lib/net10.0/Microsoft.Extensions.Primitives.dll": {
+            "assemblyVersion": "10.0.0.0",
+            "fileVersion": "10.0.826.23019"
+          }
+        }
+      },
+      "Common/1.0.0": {
+        "runtime": {
+          "Common.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "Contracts/1.0.0": {
+        "dependencies": {
+          "Common": "1.0.0"
+        },
+        "runtime": {
+          "Contracts.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "Domain/1.0.0": {
+        "dependencies": {
+          "Common": "1.0.0"
+        },
+        "runtime": {
+          "Domain.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "Application/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "FluentResults/4.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-wKfdLvDnDVhXlSreU7u/NFNHH6EfoOhAloEID4ePAyk+ZliowKZJvX+aCL4hxhFc9Jj74t62amS4LyOYTjXGCg==",
+      "path": "fluentresults/4.0.0",
+      "hashPath": "fluentresults.4.0.0.nupkg.sha512"
+    },
+    "Mapster/10.0.7": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-bZgWXyTM21Bc6Xrvk2BzPCFTwnvyTNSO4fUli/DVm02Kya80r5sY9ackpsECVlUqbda7ck9hr/1oKrCyI8yXmw==",
+      "path": "mapster/10.0.7",
+      "hashPath": "mapster.10.0.7.nupkg.sha512"
+    },
+    "Mapster.Core/10.0.7": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-73Bd0aZ+t6DoG3X4FYDfOyVgvLxgUXJKIjrps3W1n7MR03DIWI+sL62VqQSPwuJdn7WJb8HYhkH/BNZ6ZlJydw==",
+      "path": "mapster.core/10.0.7",
+      "hashPath": "mapster.core.10.0.7.nupkg.sha512"
+    },
+    "Microsoft.Extensions.Configuration.Abstractions/10.0.8": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-I63esIFbL3h5pSt7gXpXOlmcwDmYBUoYNEglKfDPFUqtYvSV84f2l28hO2lfVXsV0wdlplgAM7IVz16matapSg==",
+      "path": "microsoft.extensions.configuration.abstractions/10.0.8",
+      "hashPath": "microsoft.extensions.configuration.abstractions.10.0.8.nupkg.sha512"
+    },
+    "Microsoft.Extensions.DependencyInjection.Abstractions/10.0.8": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-21nbDV60SRPWGIivsyl6lqBeEJNG1sginhhfWgRrr3Ais7aQ12To25OAHQxgoiJkjqy1aQ6RxpZBGYuTi7Ge6A==",
+      "path": "microsoft.extensions.dependencyinjection.abstractions/10.0.8",
+      "hashPath": "microsoft.extensions.dependencyinjection.abstractions.10.0.8.nupkg.sha512"
+    },
+    "Microsoft.Extensions.Logging.Abstractions/2.1.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-XRzK7ZF+O6FzdfWrlFTi1Rgj2080ZDsd46vzOjadHUB0Cz5kOvDG8vI7caa5YFrsHQpcfn0DxtjS4E46N4FZsA==",
+      "path": "microsoft.extensions.logging.abstractions/2.1.1",
+      "hashPath": "microsoft.extensions.logging.abstractions.2.1.1.nupkg.sha512"
+    },
+    "Microsoft.Extensions.Primitives/10.0.8": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-OBPo4nYhMyIbtueoC10CBm6AGAbo/A9IV8QQ/6ryZS7VvmqpGT7hunazeHLxFawRzn3oLOq4jhqhpBX4tfswWQ==",
+      "path": "microsoft.extensions.primitives/10.0.8",
+      "hashPath": "microsoft.extensions.primitives.10.0.8.nupkg.sha512"
+    },
+    "Common/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Contracts/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Domain/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}
