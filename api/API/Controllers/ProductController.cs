@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers;
 
-[Route("products")]
+[Route("api/products")]
 
 public class ProductController(IProductService productService) : BaseController
 {
