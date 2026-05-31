@@ -30,7 +30,6 @@ nginx/
 
 **/.env
 **/secrets.json
-**/appsettings.Development.json
 
 **/*.md
 !README.md

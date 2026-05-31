@@ -5,6 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.constants import SERVICE_PREFIX
 from app.db.database import get_db
 from app.schemas.tracking import (
     CargoLocation,
@@ -14,7 +15,7 @@ from app.schemas.tracking import (
 from app.services.tracking.manager import tracking_manager
 from app.services.tracking.repository import ACTIVE_CARGO_STATUSES, tracking_repository
 
-router = APIRouter(prefix="/tracking", tags=["tracking"])
+router = APIRouter(prefix=f"{SERVICE_PREFIX}/tracking", tags=["tracking"])
 
 
 async def _get_trackable_cargo(session: AsyncSession, cargo_id: UUID):
