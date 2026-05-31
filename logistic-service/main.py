@@ -14,7 +14,7 @@ app = FastAPI(
     title="Logistic Service",
     description="API логистического сервиса",
     version="0.2.0",
-    debug=settings.debug,
+    debug=settings.logistic_debug,
     docs_url=f"{SERVICE_PREFIX}/swagger",
     redoc_url=f"{SERVICE_PREFIX}/redoc",
     openapi_url=f"{SERVICE_PREFIX}/openapi.json",
@@ -47,7 +47,7 @@ def custom_openapi() -> dict:
         description=app.description,
         routes=app.routes,
     )
-    schema["info"]["x-environment"] = settings.app_env
+    schema["info"]["x-environment"] = settings.logistic_app_env
     schema.setdefault("components", {}).setdefault("securitySchemes", {})["BearerAuth"] = {
         "type": "http",
         "scheme": "bearer",

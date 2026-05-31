@@ -9,7 +9,7 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 
 
 def _resolve_env_file() -> Path:
-    env = os.getenv("APP_ENV", "local").lower()
+    env = os.getenv("LOGISTIC_APP_ENV", "local").lower()
     if env == "prod":
         return ROOT_DIR / ".env.prod"
     return ROOT_DIR / ".env.local"
@@ -21,35 +21,35 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    app_env: str = "local"
-    debug: bool = True
+    logistic_app_env: str = "local"
+    logistic_debug: bool = True
 
-    db_host: str
-    db_port: int = 5432
-    db_name: str
-    db_user: str
-    db_password: str
+    logistic_db_host: str
+    logistic_db_port: int = 5432
+    logistic_db_name: str
+    logistic_db_user: str
+    logistic_db_password: str
 
-    jwt_issuer: str = "ConditerTrans"
-    jwt_audience: str = "ConditerTrans.Api"
-    jwt_secret_key: str
-    jwt_access_token_expires_minutes: int = 15
-    jwt_refresh_token_expires_days: int = 30
+    logistic_jwt_issuer: str = "ConditerTrans"
+    logistic_jwt_audience: str = "ConditerTrans.Api"
+    logistic_jwt_secret_key: str
+    logistic_jwt_access_token_expires_minutes: int = 15
+    logistic_jwt_refresh_token_expires_days: int = 30
 
     @property
     def database_url(self) -> str:
-        password = quote_plus(self.db_password)
+        password = quote_plus(self.logistic_db_password)
         return (
-            f"postgresql+asyncpg://{self.db_user}:{password}"
-            f"@{self.db_host}:{self.db_port}/{self.db_name}"
+            f"postgresql+asyncpg://{self.logistic_db_user}:{password}"
+            f"@{self.logistic_db_host}:{self.logistic_db_port}/{self.logistic_db_name}"
         )
 
     @property
     def alembic_database_url(self) -> str:
-        password = quote_plus(self.db_password)
+        password = quote_plus(self.logistic_db_password)
         return (
-            f"postgresql+psycopg://{self.db_user}:{password}"
-            f"@{self.db_host}:{self.db_port}/{self.db_name}"
+            f"postgresql+psycopg://{self.logistic_db_user}:{password}"
+            f"@{self.logistic_db_host}:{self.logistic_db_port}/{self.logistic_db_name}"
         )
 
 
