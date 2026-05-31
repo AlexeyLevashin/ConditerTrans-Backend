@@ -1,17 +1,19 @@
 from datetime import datetime
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
 
-class TripAssignment(BaseModel):
-    trip_id: str
-    employee_id: str
-    employee_name: str
+class CargoTrackingInfo(BaseModel):
+    cargo_id: UUID
+    driver_id: UUID | None
+    delivery_address: str
+    status: int
 
 
-class TripLocation(BaseModel):
-    trip_id: str
-    employee_id: str
+class CargoLocation(BaseModel):
+    cargo_id: UUID
+    driver_id: UUID
     latitude: float
     longitude: float
     heading: float | None = None
@@ -28,10 +30,27 @@ class LocationUpdateRequest(BaseModel):
 
 class LocationMessage(BaseModel):
     type: str = "location"
-    trip_id: str
-    employee_id: str
+    cargo_id: UUID
+    driver_id: UUID
     latitude: float
     longitude: float
     heading: float | None = None
     speed: float | None = None
     updated_at: str
+
+
+class CargoMovementHistoryItem(BaseModel):
+    id: UUID
+    cargo_id: UUID
+    driver_id: UUID
+    latitude: float
+    longitude: float
+    heading: float | None = None
+    speed: float | None = None
+    recorded_at: datetime
+
+
+class CargoMovementHistoryResponse(BaseModel):
+    cargo_id: UUID
+    items: list[CargoMovementHistoryItem]
+    total: int

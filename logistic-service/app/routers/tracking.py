@@ -1,73 +1,125 @@
 import json
 from typing import Annotated
+from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query, WebSocket, WebSocketDisconnect, status
+from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.schemas.tracking import LocationUpdateRequest, TripAssignment, TripLocation
+from app.db.database import get_db
+from app.schemas.tracking import (
+    CargoLocation,
+    CargoMovementHistoryResponse,
+    LocationUpdateRequest,
+)
 from app.services.tracking.manager import tracking_manager
-from app.services.tracking.store import tracking_store
+from app.services.tracking.repository import ACTIVE_CARGO_STATUSES, tracking_repository
 
 router = APIRouter(prefix="/tracking", tags=["tracking"])
 
 
-@router.get("/trips", response_model=list[TripAssignment])
-async def list_trip_assignments() -> list[TripAssignment]:
-    return tracking_store.list_assignments()
+async def _get_trackable_cargo(session: AsyncSession, cargo_id: UUID):
+    cargo = await tracking_repository.get_cargo_tracking_info(session, cargo_id)
+    if cargo is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cargo not found")
+    if cargo.status not in ACTIVE_CARGO_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cargo is not available for tracking",
+        )
+    if cargo.driver_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Driver is not assigned to cargo",
+        )
+    return cargo
 
 
-@router.get("/trips/{trip_id}/location", response_model=TripLocation)
-async def get_trip_location(trip_id: str) -> TripLocation:
-    assignment = tracking_store.get_assignment(trip_id)
-    if assignment is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Trip not found")
+@router.get("/cargo/{cargo_id}/location", response_model=CargoLocation)
+async def get_cargo_location(
+    cargo_id: UUID,
+    session: Annotated[AsyncSession, Depends(get_db)],
+) -> CargoLocation:
+    await _get_trackable_cargo(session, cargo_id)
 
-    location = tracking_store.get_location(trip_id)
+    location = await tracking_repository.get_latest_location(session, cargo_id)
     if location is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Location for trip is not available yet",
+            detail="Location for cargo is not available yet",
         )
 
     return location
 
 
-@router.websocket("/ws/trips/{trip_id}")
-async def trip_tracking_websocket(
+@router.get("/cargo/{cargo_id}/history", response_model=CargoMovementHistoryResponse)
+async def get_cargo_movement_history(
+    cargo_id: UUID,
+    session: Annotated[AsyncSession, Depends(get_db)],
+    limit: Annotated[int, Query(ge=1, le=5000)] = 500,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> CargoMovementHistoryResponse:
+    await _get_trackable_cargo(session, cargo_id)
+
+    items, total = await tracking_repository.get_history(session, cargo_id, limit, offset)
+    return CargoMovementHistoryResponse(cargo_id=cargo_id, items=items, total=total)
+
+
+@router.websocket("/ws/cargo/{cargo_id}")
+async def cargo_tracking_websocket(
     websocket: WebSocket,
-    trip_id: str,
+    cargo_id: UUID,
     role: Annotated[str, Query()] = "subscriber",
-    employee_id: Annotated[str | None, Query()] = None,
+    driver_id: Annotated[str | None, Query()] = None,
 ) -> None:
-    assignment = tracking_store.get_assignment(trip_id)
-    if assignment is None:
-        await websocket.close(code=4404, reason="Trip not found")
-        return
+    from app.db.database import AsyncSessionLocal
+
+    async with AsyncSessionLocal() as session:
+        try:
+            cargo = await _get_trackable_cargo(session, cargo_id)
+        except HTTPException as exc:
+            await websocket.close(code=4404 if exc.status_code == 404 else 4400, reason=exc.detail)
+            return
 
     await websocket.accept()
 
     if role == "driver":
-        resolved_employee_id = employee_id or assignment.employee_id
-        if resolved_employee_id != assignment.employee_id:
+        if cargo.driver_id is None:
+            await websocket.close(code=4400, reason="Driver is not assigned to cargo")
+            return
+
+        if driver_id is None:
+            await websocket.close(code=4400, reason="driver_id query parameter is required")
+            return
+
+        try:
+            resolved_driver_id = UUID(driver_id)
+        except ValueError:
+            await websocket.close(code=4400, reason="Invalid driver_id")
+            return
+
+        if resolved_driver_id != cargo.driver_id:
             await websocket.send_json(
                 {
                     "type": "error",
-                    "message": f"Employee '{resolved_employee_id}' is not assigned to trip '{trip_id}'",
+                    "message": f"Driver '{driver_id}' is not assigned to cargo '{cargo_id}'",
                 }
             )
-            await websocket.close(code=4403, reason="Employee is not assigned to trip")
+            await websocket.close(code=4403, reason="Driver is not assigned to cargo")
             return
 
-        await tracking_manager.register_driver(trip_id, websocket)
+        await tracking_manager.register_driver(cargo_id, websocket)
         await websocket.send_json(
             {
                 "type": "connected",
                 "role": "driver",
-                "trip_id": trip_id,
-                "employee_id": resolved_employee_id,
+                "cargo_id": str(cargo_id),
+                "driver_id": str(resolved_driver_id),
+                "delivery_address": cargo.delivery_address,
             }
         )
 
-        current_location = tracking_store.get_location(trip_id)
+        async with AsyncSessionLocal() as session:
+            current_location = await tracking_repository.get_latest_location(session, cargo_id)
         if current_location is not None:
             await tracking_manager.send_location(websocket, current_location)
 
@@ -86,12 +138,14 @@ async def trip_tracking_websocket(
                     continue
 
                 update = LocationUpdateRequest.model_validate(payload)
-                location = tracking_store.update_location(
-                    trip_id,
-                    resolved_employee_id,
-                    update,
-                )
-                await tracking_manager.broadcast_location(trip_id, location)
+                async with AsyncSessionLocal() as session:
+                    location = await tracking_repository.save_location_update(
+                        session,
+                        cargo_id,
+                        resolved_driver_id,
+                        update,
+                    )
+                await tracking_manager.broadcast_location(cargo_id, location)
                 await websocket.send_json(
                     {
                         "type": "location_ack",
@@ -99,24 +153,25 @@ async def trip_tracking_websocket(
                     }
                 )
         except WebSocketDisconnect:
-            await tracking_manager.unregister_driver(trip_id, websocket)
+            await tracking_manager.unregister_driver(cargo_id, websocket)
         except Exception as exc:
-            await tracking_manager.unregister_driver(trip_id, websocket)
+            await tracking_manager.unregister_driver(cargo_id, websocket)
             await websocket.close(code=1011, reason=str(exc))
         return
 
-    await tracking_manager.add_subscriber(trip_id, websocket)
+    await tracking_manager.add_subscriber(cargo_id, websocket)
     await websocket.send_json(
         {
             "type": "connected",
             "role": "subscriber",
-            "trip_id": trip_id,
-            "employee_id": assignment.employee_id,
-            "employee_name": assignment.employee_name,
+            "cargo_id": str(cargo_id),
+            "driver_id": str(cargo.driver_id),
+            "delivery_address": cargo.delivery_address,
         }
     )
 
-    current_location = tracking_store.get_location(trip_id)
+    async with AsyncSessionLocal() as session:
+        current_location = await tracking_repository.get_latest_location(session, cargo_id)
     if current_location is not None:
         await tracking_manager.send_location(websocket, current_location)
 
@@ -124,4 +179,4 @@ async def trip_tracking_websocket(
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
-        await tracking_manager.remove_subscriber(trip_id, websocket)
+        await tracking_manager.remove_subscriber(cargo_id, websocket)

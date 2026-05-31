@@ -24,6 +24,8 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+await app.ApplyMigrationsAsync();
+
 app.UseSwagger(options =>
 {
     options.RouteTemplate = "api/swagger/{documentName}/swagger.json";

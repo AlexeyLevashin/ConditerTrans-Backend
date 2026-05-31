@@ -20,6 +20,9 @@ public class Order
 
     [Column("delivery_address")]
     public string? DeliveryAddress { get; set; }
+
+    [Column("payment_type")]
+    public string? PaymentType { get; set; }
     
     [Column("status")]
     public OrderStatus Status { get; set; }
@@ -35,6 +38,7 @@ public class Order
 
     public virtual User? Manager { get; set; }
     public virtual User? Dispatcher { get; set; }
+    public virtual Cargo? Cargo { get; set; }
 
     public List<OrderLine> OrderLines { get; set; } = new();
     public List<OrderChangeHistory> Histories { get; set; } = new();

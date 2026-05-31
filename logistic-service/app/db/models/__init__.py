@@ -1,3 +1,3 @@
-from app.db.models.category import Category
+from app.db.models.cargo_movement_history import CargoMovementHistory
 
-__all__ = ["Category"]
+__all__ = ["CargoMovementHistory"]

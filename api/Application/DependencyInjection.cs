@@ -1,4 +1,5 @@
 using Application.Auth;
+using Application.CargoHandling;
 using Application.Categories;
 using Application.Common.Interfaces.Persistence.Repositories;
 using Application.Common.Interfaces.Services;
@@ -21,6 +22,7 @@ public static class DependencyInjection
         services.AddScoped<ICompanyService, CompanyService>();
         services.AddScoped<ICategoryService, CategoryService>();
         services.AddScoped<IOrderService, OrderService>();
+        services.AddScoped<ICargoService, CargoService>();
         return services;
     }
 }

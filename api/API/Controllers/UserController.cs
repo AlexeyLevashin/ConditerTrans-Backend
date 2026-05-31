@@ -8,6 +8,8 @@ namespace API.Controllers;
 [Route("api/users")]
 public class UserController(IUserService userService) : BaseController
 {
+    private const string AdminEmployeesForbiddenMessage = "Просматривать сотрудников может только администратор";
+
     [HttpGet("me")]
     public async Task<IActionResult> GetMe()
     {
@@ -20,7 +22,44 @@ public class UserController(IUserService userService) : BaseController
 
         return Ok(result.Value);
     }
-    
+
+    [HttpGet("employees")]
+    public async Task<IActionResult> GetEmployees()
+    {
+        var result = await userService.GetCompanyEmployeesAsync(UserId, CompanyId);
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        if (result.Errors.Any(error => error.Message == AdminEmployeesForbiddenMessage))
+        {
+            return Forbid();
+        }
+
+        return BadRequest(new { Error = result.Errors.FirstOrDefault()?.Message });
+    }
+
+    [HttpGet("drivers")]
+    public async Task<IActionResult> GetDrivers()
+    {
+        var result = await userService.GetCompanyDriversAsync(UserId, UserRole, CompanyId);
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        if (result.Errors.Any(error =>
+                error.Message == "Просматривать водителей может только логист-координатор"))
+        {
+            return Forbid();
+        }
+
+        return BadRequest(new { Error = result.Errors.FirstOrDefault()?.Message });
+    }
+
     [HttpPost("admin-invite")]
     public async Task<IActionResult> InviteUser(CreateUserByAdminRequest request)
     {
@@ -31,6 +70,6 @@ public class UserController(IUserService userService) : BaseController
             return Ok(new { InviteId = result.Value });
         }
 
-        return BadRequest(new { Error = result.Errors.FirstOrDefault() });
+        return BadRequest(new { Error = result.Errors.FirstOrDefault()?.Message });
     }
 }

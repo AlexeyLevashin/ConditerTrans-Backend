@@ -3,12 +3,17 @@ using Application.Common.Interfaces.Persistence.Repositories;
 using Application.Common.Interfaces.Services;
 using Common.Enums;
 using Contracts.Orders.Requests;
+using Contracts.Orders.Responses;
 using Domain.Entities;
 using FluentResults;
 
 namespace Application.Orders;
 
-public class OrderService(IOrderRepository orderRepository, IUserRepository userRepository, IProductRepository productRepository, IUnitOfWork unitOfWork) : IOrderService
+public class OrderService(
+    IOrderRepository orderRepository,
+    IUserRepository userRepository,
+    IProductRepository productRepository,
+    IUnitOfWork unitOfWork) : IOrderService
 {
     public async Task<Result> CreateAsync(Guid managerId, CreateOrderRequest request)
     {
@@ -19,59 +24,105 @@ public class OrderService(IOrderRepository orderRepository, IUserRepository user
             return Result.Fail("Пользователь не найден");
         }
 
-        var product = await productRepository.GetProductByIdAsync(request.ProductId);
-        
-        if (product is null)
+        if (!await productRepository.ExistsByIdAsync(request.ProductId))
         {
             return Result.Fail("Товар не найден");
         }
 
-        var order = await orderRepository.GetDraftByManagerIdAsync(managerId);
+        var draftOrderId = await orderRepository.GetDraftOrderIdByManagerIdAsync(managerId);
 
-        if (order is null)
+        if (draftOrderId is null)
         {
-            order = new Order
+            var order = new Order
             {
                 ManagerId = managerId,
                 Status = OrderStatus.Draft,
                 CreationDate = DateTime.UtcNow
             };
-            
-            order.Histories.Add(new OrderChangeHistory
-            {
-                OrderStatus = OrderStatus.Draft,
-                ChangeTime = DateTime.UtcNow
-            });
-            
-            order.OrderLines.Add(new OrderLine
-            {
-                ProductId = request.ProductId,
-                QuantityOfUnits = request.QuantityOfUnits
-            });
 
-            await orderRepository.CreateAsync(order);
+            await orderRepository.CreateDraftAsync(order, request.ProductId, request.QuantityOfUnits);
         }
         else
         {
-            var existingLine = order.OrderLines.FirstOrDefault(ol => ol.ProductId == request.ProductId);
-
-            if (existingLine != null)
-            {
-                existingLine.QuantityOfUnits += request.QuantityOfUnits;
-            }
-            else
-            {
-                order.OrderLines.Add(new OrderLine
-                {
-                    ProductId = request.ProductId,
-                    QuantityOfUnits = request.QuantityOfUnits
-                });
-            }
-            orderRepository.Update(order);
+            await orderRepository.UpsertOrderLineAsync(
+                draftOrderId.Value,
+                request.ProductId,
+                request.QuantityOfUnits);
         }
 
         await unitOfWork.SaveChangesAsync();
+        return Result.Ok();
+    }
 
+    public async Task<Result<GetCurrentOrderResponse>> GetCurrentDraftAsync(Guid managerId)
+    {
+        var order = await orderRepository.GetDraftByManagerIdAsync(managerId);
+
+        if (order is null)
+        {
+            return Result.Fail("Черновик заказа не найден");
+        }
+
+        if (order.OrderLines.Any(line => line.Product is null))
+        {
+            return Result.Fail("Не удалось загрузить данные товаров в заказе");
+        }
+
+        return Result.Ok(order.ToCurrentOrderDto());
+    }
+
+    public async Task<Result<GetOrderHistoryResponse>> GetHistoryAsync(Guid managerId)
+    {
+        var orders = await orderRepository.GetAllByManagerIdAsync(managerId);
+        return Result.Ok(orders.ToHistoryDto());
+    }
+
+    public async Task<Result<GetOrderByIdResponse>> GetByIdAsync(Guid managerId, Guid orderId)
+    {
+        var order = await orderRepository.GetByIdAndManagerIdAsync(orderId, managerId);
+
+        if (order is null)
+        {
+            return Result.Fail("Заказ не найден");
+        }
+
+        if (order.OrderLines.Any(line => line.Product is null))
+        {
+            return Result.Fail("Не удалось загрузить данные товаров в заказе");
+        }
+
+        return Result.Ok(order.ToOrderByIdDto());
+    }
+
+    public async Task<Result> SubmitAsync(Guid managerId, Guid orderId, SubmitOrderRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Address))
+        {
+            return Result.Fail("Адрес доставки обязателен");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.TypePayment))
+        {
+            return Result.Fail("Способ оплаты обязателен");
+        }
+
+        if (!await orderRepository.ExistsDraftForManagerAsync(orderId, managerId))
+        {
+            return Result.Fail("Заказ не найден");
+        }
+
+        if (!await orderRepository.HasOrderLinesAsync(orderId))
+        {
+            return Result.Fail("Нельзя отправить пустой заказ");
+        }
+
+        await orderRepository.SubmitDraftAsync(
+            orderId,
+            managerId,
+            request.Address.Trim(),
+            request.TypePayment.Trim());
+
+        await unitOfWork.SaveChangesAsync();
         return Result.Ok();
     }
 }

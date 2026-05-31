@@ -7,5 +7,6 @@ public enum UserRole
 {
     Manager,
     Dispatcher,
-    Coordinator
+    Coordinator,
+    Driver
 }

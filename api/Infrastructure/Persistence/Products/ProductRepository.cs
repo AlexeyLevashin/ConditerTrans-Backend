@@ -7,6 +7,11 @@ namespace Infrastructure.Persistence.Products;
 
 public class ProductRepository(AppDbContext context) : IProductRepository
 {
+    public Task<bool> ExistsByIdAsync(Guid id)
+    {
+        return context.Products.AnyAsync(p => p.Id == id);
+    }
+
     public async Task<Product?> GetProductByIdAsync(Guid id)
     {
         return await context.Products
