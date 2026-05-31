@@ -1,4 +1,5 @@
 using Application.Auth;
+using Application.Categories;
 using Application.Common.Interfaces.Persistence.Repositories;
 using Application.Common.Interfaces.Services;
 using Application.Companies;
@@ -16,6 +17,8 @@ public static class DependencyInjection
         services.AddScoped<ICompanyService, CompanyService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IProductService, ProductService>();
+        services.AddScoped<ICompanyService, CompanyService>();
+        services.AddScoped<ICategoryService, CategoryService>();
         return services;
     }
 }
