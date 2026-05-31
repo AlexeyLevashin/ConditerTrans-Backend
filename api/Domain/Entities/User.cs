@@ -7,7 +7,7 @@ namespace Domain.Entities;
 public class User
 {
     [Column("id")]
-    public Guid Id { get; set; }
+    public Guid Id { get; set; } = Guid.CreateVersion7();
     [Column("email")]
     public string Email { get; set; }
     [Column("is_admin")]

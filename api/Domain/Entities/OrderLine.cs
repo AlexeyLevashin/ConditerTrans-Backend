@@ -6,7 +6,7 @@ namespace Domain.Entities;
 public class OrderLine
 {
     [Column("id")]
-    public Guid Id { get; set; }
+    public Guid Id { get; set; } = Guid.CreateVersion7();
 
     [Column("quantity_of_units")]
     public int QuantityOfUnits { get; set; }
@@ -17,6 +17,6 @@ public class OrderLine
     [Column("order_id")]
     public Guid OrderId { get; set; }
 
-    public virtual Product Product { get; set; }
-    public virtual Order Order { get; set; }
+    public virtual Product? Product { get; set; }
+    public virtual Order? Order { get; set; }
 }

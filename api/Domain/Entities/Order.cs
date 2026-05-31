@@ -6,7 +6,7 @@ namespace Domain.Entities;
 public class Order
 {
     [Column("id")]
-    public Guid Id { get; set; }
+    public Guid Id { get; set; } = Guid.CreateVersion7();
 
     [Column("order_number")]
     public int OrderNumber { get; set; }
@@ -23,6 +23,6 @@ public class Order
     [Column("cargo_id")]
     public Guid? CargoId { get; set; }
 
-    public virtual User Manager { get; set; }
+    public virtual User? Manager { get; set; }
     public virtual User? Dispatcher { get; set; }
 }

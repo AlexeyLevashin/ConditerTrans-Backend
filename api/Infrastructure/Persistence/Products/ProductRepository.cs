@@ -24,12 +24,12 @@ public class ProductRepository(AppDbContext context) : IProductRepository
         
         if (companyIds != null && companyIds.Any())
         {
-            query = query.Where(c => companyIds.Contains(c.Id));
+            query = query.Where(c => companyIds.Contains(c.CompanyId));
         }
 
         if (categoryIds != null && categoryIds.Any())
         {
-            query = query.Where(ct => categoryIds.Contains(ct.Id));
+            query = query.Where(ct => categoryIds.Contains(ct.CategoryId));
         }
 
         return await query.ToListAsync();
