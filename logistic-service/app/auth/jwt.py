@@ -56,10 +56,10 @@ def decode_access_token(token: str, settings: Settings) -> CurrentUser:
     try:
         payload = jwt.decode(
             token,
-            settings.jwt_secret_key,
+            settings.logistic_jwt_secret_key,
             algorithms=["HS256"],
-            audience=settings.jwt_audience,
-            issuer=settings.jwt_issuer,
+            audience=settings.logistic_jwt_audience,
+            issuer=settings.logistic_jwt_issuer,
         )
     except InvalidTokenError as exc:
         raise JwtValidationError("Invalid token") from exc

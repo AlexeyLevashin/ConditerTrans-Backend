@@ -25,7 +25,7 @@ services:
     env_file:
       - ./logistic-service/.env.prod
     environment:
-      APP_ENV: prod
+      LOGISTIC_APP_ENV: prod
     networks:
       - backend
     restart: unless-stopped
