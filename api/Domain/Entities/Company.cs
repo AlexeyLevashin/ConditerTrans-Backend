@@ -7,7 +7,7 @@ namespace Domain.Entities;
 public class Company
 {
     [Column("id")]
-    public Guid Id { get; set; }
+    public Guid Id { get; set; } = Guid.CreateVersion7();
 
     [Column("inn")]
     public string Inn { get; set; }

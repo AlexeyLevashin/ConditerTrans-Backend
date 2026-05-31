@@ -6,6 +6,7 @@
 
     <ItemGroup>
       <Folder Include="Employee\Requests\" />
+      <Folder Include="Product\Requests\" />
     </ItemGroup>
 
     <PropertyGroup>

@@ -30,4 +30,15 @@ public class CompanyRepository(AppDbContext context) : ICompanyRepository
         return context.Users
             .AnyAsync(u => u.IsAdmin && u.Employee!.CompanyId == companyId);
     }
+    
+    public async Task<bool> CheckAllExistAsync(List<Guid> ids)
+    {
+        var uniqueIds = ids.Distinct().ToList();
+
+        var existingCount = await context.Companies
+            .Where(c => uniqueIds.Contains(c.Id))
+            .CountAsync();
+
+        return existingCount == uniqueIds.Count;
+    }
 }
