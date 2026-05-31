@@ -1,12 +1,10 @@
-from contextlib import asynccontextmanager
-
-import uvicorn
-from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
-
-from app.db.database import close_db
-from app.routers import categories
+from contextlib import asynccontextmanager
 from app.settings import get_settings
+from app.db.database import close_db
+from app.routers import tracking
+from fastapi import FastAPI
+import uvicorn
 
 settings = get_settings()
 
@@ -28,7 +26,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-app.include_router(categories.router)
+app.include_router(tracking.router)
 
 
 def custom_openapi() -> dict:
