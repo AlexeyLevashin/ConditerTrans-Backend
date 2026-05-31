@@ -9,5 +9,5 @@ public interface ICompanyRepository
     Task<Company?> GetByUserIdAsync(Guid userId);
     Task<bool> GetAdminInCompanyExistAsync(Guid companyId);
     Task<bool> CheckAllExistAsync(List<Guid> ids);
-    public Task<List<Company>> GetAllAsync();
+    Task<List<Company>> GetAllAsync();
 }

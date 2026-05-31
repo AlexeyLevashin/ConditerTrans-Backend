@@ -14,7 +14,7 @@ public class CategoryController(ICategoryService categoryService) : BaseControll
 
         if (results.IsFailed)
         {
-            return NotFound();
+            return BadRequest(results.Errors);
         }
 
         return Ok(results.Value);

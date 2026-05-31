@@ -17,4 +17,5 @@ public class OrderChangeHistory
 
     [Column("order_id")]
     public Guid OrderId { get; set; }
+    public virtual Order Order { get; set; } = null!;
 }

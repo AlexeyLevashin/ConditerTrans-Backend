@@ -4,6 +4,6 @@ namespace Application.Common.Interfaces.Persistence.Repositories;
 
 public interface IProductRepository
 {
-    public Task<Product?> GetProductByIdAsync(Guid id);
-    public Task<List<Product>> GetAllProductsAsync(List<Guid>? companyIds, List<Guid>? categoryIds);
+    Task<Product?> GetProductByIdAsync(Guid id);
+    Task<List<Product>> GetAllProductsAsync(List<Guid>? companyIds, List<Guid>? categoryIds);
 }

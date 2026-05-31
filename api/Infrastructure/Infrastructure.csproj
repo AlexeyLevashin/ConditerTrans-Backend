@@ -18,9 +18,4 @@
       <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.18.0" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="Persistence\OrderLines\" />
-      <Folder Include="Persistence\Orders\" />
-    </ItemGroup>
-
 </Project>

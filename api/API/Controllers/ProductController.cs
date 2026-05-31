@@ -16,7 +16,7 @@ public class ProductController(IProductService productService) : BaseController
 
         if (result.IsFailed)
         {
-            return NotFound();
+            return BadRequest(result.Errors);
         }
 
         return Ok(result.Value);
@@ -29,7 +29,7 @@ public class ProductController(IProductService productService) : BaseController
         
         if (results.IsFailed)
         {
-            return NotFound();
+            return BadRequest(results.Errors);
         }
         
         return Ok(results.Value);

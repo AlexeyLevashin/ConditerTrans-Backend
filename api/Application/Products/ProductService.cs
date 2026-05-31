@@ -14,7 +14,7 @@ public class ProductService(IProductRepository productRepository, ICompanyReposi
 
         if (product is null)
         {
-            return Result.Fail("Продукция не найден");
+            return Result.Fail("Продукция не найдена");
         }
         
         return Result.Ok(product.DbToDetailDto());

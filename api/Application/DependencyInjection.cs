@@ -3,6 +3,7 @@ using Application.Categories;
 using Application.Common.Interfaces.Persistence.Repositories;
 using Application.Common.Interfaces.Services;
 using Application.Companies;
+using Application.Orders;
 using Application.Products;
 using Application.Users;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,6 +20,7 @@ public static class DependencyInjection
         services.AddScoped<IProductService, ProductService>();
         services.AddScoped<ICompanyService, CompanyService>();
         services.AddScoped<ICategoryService, CategoryService>();
+        services.AddScoped<IOrderService, OrderService>();
         return services;
     }
 }

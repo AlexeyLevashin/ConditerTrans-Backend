@@ -6,7 +6,7 @@ namespace DataAccess.Configurations;
 
 public class OrderConfiguration : IEntityTypeConfiguration<Order>
 {
-    public void Configure(EntityTypeBuilder<Order> builder)
+   public void Configure(EntityTypeBuilder<Order> builder)
     {
         builder.ToTable("orders");
 
@@ -17,6 +17,17 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
 
         builder.Property(o => o.CreationDate)
             .IsRequired();
+
+        builder.Property(o => o.Status)
+            .IsRequired(); 
+
+        builder.Property(o => o.ProductionAddress)
+            .HasMaxLength(255)
+            .IsRequired(false);
+
+        builder.Property(o => o.DeliveryAddress)
+            .HasMaxLength(255)
+            .IsRequired(false);
 
         builder.Property(o => o.ManagerId)
             .IsRequired();
@@ -34,5 +45,15 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
             .WithMany()
             .HasForeignKey(o => o.DispatcherId)
             .OnDelete(DeleteBehavior.SetNull); 
+        
+        builder.HasMany(o => o.OrderLines)
+            .WithOne(ol => ol.Order) 
+            .HasForeignKey(ol => ol.OrderId)
+            .OnDelete(DeleteBehavior.Cascade); 
+
+        builder.HasMany(o => o.Histories)
+            .WithOne(h => h.Order)
+            .HasForeignKey(h => h.OrderId)
+            .OnDelete(DeleteBehavior.Cascade); 
     }
 }
