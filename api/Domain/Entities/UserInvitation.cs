@@ -16,5 +16,5 @@ public class UserInvitation
 
     [Column("is_used")]
     public bool IsUsed { get; set; } = false;
-    public virtual User User { get; set; }
+    public virtual User? User { get; set; }
 }

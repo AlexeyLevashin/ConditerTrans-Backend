@@ -6,23 +6,42 @@ using Mapster;
 
 namespace Application.Products;
 
-public class ProductService(IProductRepository productRepository) : IProductService
+public class ProductService(IProductRepository productRepository, ICompanyRepository companyRepository, ICategoryRepository categoryRepository) : IProductService
 {
-    public async Task<GetProductResponse?> GetProductByIdAsync(Guid id)
+    public async Task<Result<GetProductResponse>> GetProductByIdAsync(Guid id)
     {
         var product = await productRepository.GetProductByIdAsync(id);
 
         if (product is null)
         {
-            Result.Fail("Продукт не найден");
+            return Result.Fail("Продукция не найден");
         }
         
-        var result = product.Adapt<GetProductResponse>();
-        return result;
+        return Result.Ok(product.DbToDetailDto());
     }
 
-    public Task<List<GetProductResponse>> GetAllProductsAsync(List<Guid>? companyIds, List<Guid>? categoryIds)
+    public async Task<Result<List<ProductListItemResponse>>> GetAllProductsAsync(List<Guid>? companyIds, List<Guid>? categoryIds)
     {
-        throw new NotImplementedException();
+        if (companyIds != null && companyIds.Any())
+        {
+            bool allCompaniesExist = await companyRepository.CheckAllExistAsync(companyIds);
+            if (!allCompaniesExist)
+            {
+                return Result.Fail("Одна или несколько указанных компаний не найдены.");
+            }
+        }
+
+        if (categoryIds != null && categoryIds.Any())
+        {
+            bool allCategoriesExist = await categoryRepository.CheckAllExistAsync(categoryIds);
+            if (!allCategoriesExist)
+            {
+                return Result.Fail("Одна или несколько указанных категорий не найдены.");
+            }
+        }
+        
+        var products = await productRepository.GetAllProductsAsync(companyIds, categoryIds);
+        
+        return Result.Ok(products.DbToListItemsDto());
     }
 }

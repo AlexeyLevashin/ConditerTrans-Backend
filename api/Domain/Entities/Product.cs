@@ -9,13 +9,13 @@ namespace Domain;
 public class Product
 {
     [Column("id")]
-    public Guid Id { get; set; }
+    public Guid Id { get; set; } = Guid.CreateVersion7();
 
     [Column("name")]
     public string Name { get; set; }
     
     [Column("description")]
-    public string Description { get; set; }
+    public string? Description { get; set; }
     
     [Column("price")]
     public decimal Price { get; set; }
@@ -35,6 +35,6 @@ public class Product
     [Column("company_id")]
     public Guid CompanyId { get; set; }
     
-    public virtual Company Company { get; set; }
-    public virtual Category Category { get; set; }
+    public virtual Company? Company { get; set; }
+    public virtual Category? Category { get; set; }
 }

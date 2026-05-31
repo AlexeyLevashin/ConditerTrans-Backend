@@ -7,7 +7,7 @@ namespace Domain.Entities;
 public class OrderChangeHistory
 {
     [Column("id")]
-    public Guid Id { get; set; }
+    public Guid Id { get; set; } = Guid.CreateVersion7();
 
     [Column("change_time")]
     public DateTime ChangeTime { get; set; }

@@ -1,9 +1,10 @@
 ﻿using Contracts.Product.Responses;
+using FluentResults;
 
 namespace Application.Common.Interfaces.Services;
 
 public interface IProductService
 {
-    public Task<GetProductResponse?> GetProductByIdAsync(Guid id);
-    public Task<List<GetProductResponse>> GetAllProductsAsync(List<Guid>? companyIds, List<Guid>? categoryIds);
+    public Task<Result<GetProductResponse>> GetProductByIdAsync(Guid id);
+    public Task<Result<List<ProductListItemResponse>>> GetAllProductsAsync(List<Guid>? companyIds, List<Guid>? categoryIds);
 }
