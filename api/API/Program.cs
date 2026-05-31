@@ -3,10 +3,8 @@ using API.Middlewares;
 using Application;
 using DataAccess;
 using Infrastructure;
-using Microsoft.IdentityModel.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
-IdentityModelEventSource.ShowPII = true;
 builder.Services.AddControllers();
 builder.Services.AddDataAccess(builder.Configuration);
 builder.Services.AddSwaggerConfiguration();
@@ -26,11 +24,14 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-app.UseSwagger();
+app.UseSwagger(options =>
+{
+    options.RouteTemplate = "api/swagger/{documentName}/swagger.json";
+});
 app.UseSwaggerUI(options =>
 {
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "ConditerTrans API v1");
-    options.RoutePrefix = "swagger";
+    options.SwaggerEndpoint("/api/swagger/v1/swagger.json", "ConditerTrans API v1");
+    options.RoutePrefix = "api/swagger";
 });
 
 app.UseMiddleware<ExceptionHandlingMiddlewares>();

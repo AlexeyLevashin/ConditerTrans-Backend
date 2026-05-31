@@ -1,13 +1,13 @@
 services:
-#  api:
-#    build:
-#      context: ./api
-#      dockerfile: Dockerfile
-#    restart: unless-stopped
-#    environment:
-#      ASPNETCORE_ENVIRONMENT: Production
-#      ASPNETCORE_URLS: http://+:8080
-#    networks: [backend]
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+    networks: [backend]
 
   file-service:
     build:
@@ -29,8 +29,8 @@ services:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - ./certbot/www:/var/www/certbot:ro
       - ./certbot/conf:/etc/letsencrypt:ro
-#    depends_on:
-#      - api
+    depends_on:
+      - api
     networks: [backend]
 
 networks:
