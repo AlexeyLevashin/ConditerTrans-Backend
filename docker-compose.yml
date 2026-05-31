@@ -23,7 +23,7 @@ services:
       context: ./logistic-service
       dockerfile: Dockerfile
     env_file:
-      - ./logistic-service/.env.prod
+      - .env
     environment:
       LOGISTIC_APP_ENV: prod
     networks:
