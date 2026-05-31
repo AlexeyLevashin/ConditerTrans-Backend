@@ -15,7 +15,7 @@ public class CompanyController(ICompanyService companyService) : BaseController
 
         if (results.IsFailed)
         {
-            return NotFound();
+            return BadRequest(results.Errors);
         }
         
         return Ok(results.Value);
