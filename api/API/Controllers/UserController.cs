@@ -1,12 +1,11 @@
 ﻿using API.Controllers.Abstractions;
 using Application.Common.Interfaces.Services;
 using Contracts.User.Requests;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers;
 
-[Route("users")]
+[Route("api/users")]
 public class UserController(IUserService userService) : BaseController
 {
     [HttpGet("me")]
