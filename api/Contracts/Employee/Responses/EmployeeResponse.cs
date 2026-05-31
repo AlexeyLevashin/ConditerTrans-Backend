@@ -7,5 +7,6 @@ public class EmployeeResponse
     public string? Patronymic { get; set; }
     public string Phone { get; set; } = null!;
     public string EmployeeNumber { get; set; } = null!;
-    public Guid CompanyId { get; set; } 
+    public Guid CompanyId { get; set; }
+    public DateTime CreatedAt { get; set; }
 }

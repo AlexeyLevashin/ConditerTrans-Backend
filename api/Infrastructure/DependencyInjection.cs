@@ -6,6 +6,7 @@ using Application.Common.Interfaces.Persistence.Repositories;
 using Application.Common.Interfaces.Services;
 using Infrastructure.Auth;
 using Infrastructure.Persistence;
+using Infrastructure.Persistence.Cargo;
 using Infrastructure.Persistence.Categories;
 using Infrastructure.Persistence.Companies;
 using Infrastructure.Persistence.Employees;
@@ -35,6 +36,7 @@ public static class DependencyInjection
         services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IOrderRepository, OrderRepository>();
+        services.AddScoped<ICargoRepository, CargoRepository>();
 
         services.AddJwtAuthentication(configuration);
         return services;

@@ -22,7 +22,8 @@ internal static class UserMapper
             Patronymic = user.Employee.Patronymic,
             Phone = user.Employee.Phone,
             EmployeeNumber = user.Employee.EmployeeNumber,
-            CompanyId = user.Employee.CompanyId 
+            CompanyId = user.Employee.CompanyId,
+            CreatedAt = user.Employee.CreatedAt,
         } : null
     };
 }

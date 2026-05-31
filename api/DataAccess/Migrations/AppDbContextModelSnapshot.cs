@@ -148,6 +148,86 @@ namespace DataAccess.Migrations
                     b.ToTable("employees", (string)null);
                 });
 
+            modelBuilder.Entity("Domain.Entities.Cargo", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("DeliveryAddress")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("delivery_address");
+
+                    b.Property<Guid?>("DriverId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("driver_id");
+
+                    b.Property<DateTime>("LoadingDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("loading_date");
+
+                    b.Property<Guid?>("LogisticCompanyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("logistic_company_id");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<DateTime>("UnloadingDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("unloading_date");
+
+                    b.Property<decimal>("Volume")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)")
+                        .HasColumnName("volume");
+
+                    b.Property<decimal>("Weight")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)")
+                        .HasColumnName("weight");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DriverId");
+
+                    b.HasIndex("LogisticCompanyId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("cargos", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Entities.CargoChangeHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("ChangeTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("change_time");
+
+                    b.Property<int>("CargoStatus")
+                        .HasColumnType("integer")
+                        .HasColumnName("cargo_status");
+
+                    b.Property<Guid>("CargoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cargo_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CargoId");
+
+                    b.ToTable("cargo_change_histories", (string)null);
+                });
+
             modelBuilder.Entity("Domain.Entities.Order", b =>
                 {
                     b.Property<Guid>("Id")
@@ -176,6 +256,11 @@ namespace DataAccess.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("manager_id");
 
+                    b.Property<string>("PaymentType")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("payment_type");
+
                     b.Property<int>("OrderNumber")
                         .HasColumnType("integer")
                         .HasColumnName("order_number");
@@ -190,6 +275,9 @@ namespace DataAccess.Migrations
                         .HasColumnName("status");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CargoId")
+                        .IsUnique();
 
                     b.HasIndex("DispatcherId");
 
@@ -384,8 +472,41 @@ namespace DataAccess.Migrations
                     b.Navigation("Company");
                 });
 
+            modelBuilder.Entity("Domain.Entities.Cargo", b =>
+                {
+                    b.HasOne("Domain.Entities.Company", "LogisticCompany")
+                        .WithMany()
+                        .HasForeignKey("LogisticCompanyId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Domain.Entities.User", "Driver")
+                        .WithMany()
+                        .HasForeignKey("DriverId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Driver");
+
+                    b.Navigation("LogisticCompany");
+                });
+
+            modelBuilder.Entity("Domain.Entities.CargoChangeHistory", b =>
+                {
+                    b.HasOne("Domain.Entities.Cargo", "Cargo")
+                        .WithMany("Histories")
+                        .HasForeignKey("CargoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Cargo");
+                });
+
             modelBuilder.Entity("Domain.Entities.Order", b =>
                 {
+                    b.HasOne("Domain.Entities.Cargo", "Cargo")
+                        .WithOne("Order")
+                        .HasForeignKey("Domain.Entities.Order", "CargoId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Domain.Entities.User", "Dispatcher")
                         .WithMany()
                         .HasForeignKey("DispatcherId")
@@ -400,6 +521,8 @@ namespace DataAccess.Migrations
                     b.Navigation("Dispatcher");
 
                     b.Navigation("Manager");
+
+                    b.Navigation("Cargo");
                 });
 
             modelBuilder.Entity("Domain.Entities.OrderChangeHistory", b =>
@@ -473,6 +596,13 @@ namespace DataAccess.Migrations
                     b.Navigation("Company");
                 });
 
+            modelBuilder.Entity("Domain.Entities.Cargo", b =>
+                {
+                    b.Navigation("Histories");
+
+                    b.Navigation("Order");
+                });
+
             modelBuilder.Entity("Domain.Entities.Company", b =>
                 {
                     b.Navigation("Employees");
@@ -480,6 +610,8 @@ namespace DataAccess.Migrations
 
             modelBuilder.Entity("Domain.Entities.Order", b =>
                 {
+                    b.Navigation("Cargo");
+
                     b.Navigation("Histories");
 
                     b.Navigation("OrderLines");

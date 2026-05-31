@@ -29,12 +29,23 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
             .HasMaxLength(255)
             .IsRequired(false);
 
+        builder.Property(o => o.PaymentType)
+            .HasMaxLength(64)
+            .IsRequired(false);
+
         builder.Property(o => o.ManagerId)
             .IsRequired();
 
         builder.Property(o => o.DispatcherId);
 
         builder.Property(o => o.CargoId);
+
+        builder.HasOne(o => o.Cargo)
+            .WithOne(c => c.Order)
+            .HasForeignKey<Order>(o => o.CargoId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(o => o.CargoId).IsUnique();
 
         builder.HasOne(o => o.Manager)
             .WithMany()
