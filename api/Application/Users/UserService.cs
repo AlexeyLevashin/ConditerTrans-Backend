@@ -25,7 +25,7 @@ public class UserService(IUserRepository userRepository, IInvitationRepository i
         return Result.Ok(user.DbToDto());
     }
 
-    public async Task<Result<string>> AddByAdminAsync(CreateUserByAdminRequest request, Guid userId, Guid adminCompanyId)
+    public async Task<Result<Guid>> AddByAdminAsync(CreateUserByAdminRequest request, Guid userId, Guid adminCompanyId)
     {
         var admin = await userRepository.GetByIdAsync(userId);
         
@@ -73,9 +73,7 @@ public class UserService(IUserRepository userRepository, IInvitationRepository i
         await invitationRepository.AddAsync(invitation);
         
         await unitOfWork.SaveChangesAsync();
-
-        var inviteLink = $"https://conditertrans.ru/set-password?inviteId={invitation.Id}";
     
-        return Result.Ok(inviteLink);
+        return Result.Ok(invitation.Id);
     }
 }

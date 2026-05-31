@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers;
 
-[Route("companies")]
+[Route("api/companies")]
 public class CompanyController(ICompanyService companyService) : BaseController
 {
     [HttpGet]

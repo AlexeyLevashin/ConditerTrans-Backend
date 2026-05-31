@@ -28,7 +28,7 @@ public class UserController(IUserService userService) : BaseController
 
         if (result.IsSuccess)
         {
-            return Ok(new { InviteLink = result.Value });
+            return Ok(new { InviteId = result.Value });
         }
 
         return BadRequest(new { Error = result.Errors.FirstOrDefault() });
