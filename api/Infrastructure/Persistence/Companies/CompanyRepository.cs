@@ -41,4 +41,9 @@ public class CompanyRepository(AppDbContext context) : ICompanyRepository
 
         return existingCount == uniqueIds.Count;
     }
+
+    public async Task<List<Company>> GetAllAsync()
+    {
+        return await context.Companies.AsNoTracking().ToListAsync();
+    }
 }

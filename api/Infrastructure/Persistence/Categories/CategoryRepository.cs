@@ -1,5 +1,6 @@
 ﻿using Application.Common.Interfaces.Persistence.Repositories;
 using DataAccess;
+using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence.Categories;
@@ -15,5 +16,10 @@ public class CategoryRepository(AppDbContext context) : ICategoryRepository
             .CountAsync();
 
         return existingCount == uniqueIds.Count;
+    }
+
+    public async Task<List<Category>> GetAllAsync()
+    {
+        return await context.Categories.AsNoTracking().ToListAsync();
     }
 }
