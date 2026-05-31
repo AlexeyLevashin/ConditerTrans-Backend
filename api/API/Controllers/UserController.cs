@@ -15,7 +15,7 @@ public class UserController(IUserService userService) : BaseController
 
         if (result.IsFailed)
         {
-            return NotFound();
+            return BadRequest(result.Errors);
         }
 
         return Ok(result.Value);

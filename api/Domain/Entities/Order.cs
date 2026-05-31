@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
+using Common.Enums;
 
 namespace Domain.Entities;
 
@@ -13,6 +14,15 @@ public class Order
 
     [Column("creation_date")]
     public DateTime CreationDate { get; set; }
+    
+    [Column("production_address")]
+    public string? ProductionAddress { get; set; }
+
+    [Column("delivery_address")]
+    public string? DeliveryAddress { get; set; }
+    
+    [Column("status")]
+    public OrderStatus Status { get; set; }
 
     [Column("manager_id")]
     public Guid ManagerId { get; set; }
@@ -25,4 +35,7 @@ public class Order
 
     public virtual User? Manager { get; set; }
     public virtual User? Dispatcher { get; set; }
+
+    public List<OrderLine> OrderLines { get; set; } = new();
+    public List<OrderChangeHistory> Histories { get; set; } = new();
 }

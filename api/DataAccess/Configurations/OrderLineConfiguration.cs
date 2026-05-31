@@ -21,11 +21,6 @@ public class OrderLineConfiguration : IEntityTypeConfiguration<OrderLine>
         builder.Property(ol => ol.OrderId)
             .IsRequired();
 
-        builder.HasOne(ol => ol.Order)
-            .WithMany()
-            .HasForeignKey(ol => ol.OrderId)
-            .OnDelete(DeleteBehavior.Cascade);
-
         builder.HasOne(ol => ol.Product)
             .WithMany()
             .HasForeignKey(ol => ol.ProductId)

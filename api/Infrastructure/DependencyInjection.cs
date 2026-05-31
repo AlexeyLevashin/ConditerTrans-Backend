@@ -10,6 +10,7 @@ using Infrastructure.Persistence.Categories;
 using Infrastructure.Persistence.Companies;
 using Infrastructure.Persistence.Employees;
 using Infrastructure.Persistence.Invitation;
+using Infrastructure.Persistence.Orders;
 using Infrastructure.Persistence.Products;
 using Infrastructure.Persistence.Users;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -33,6 +34,7 @@ public static class DependencyInjection
         services.AddScoped<IInvitationRepository, InvitationRepository>();
         services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<ICategoryRepository, CategoryRepository>();
+        services.AddScoped<IOrderRepository, OrderRepository>();
 
         services.AddJwtAuthentication(configuration);
         return services;
