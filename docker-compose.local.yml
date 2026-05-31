@@ -4,6 +4,21 @@
 # Mounts conf.d.local last — it replaces production conf.d (no 02-https.conf).
 
 services:
+  logistic-service:
+    env_file:
+      - ./logistic-service/.env.local
+    environment:
+      APP_ENV: local
+  
+  api:
+    build:
+      context: ./api
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+    networks: [backend]
+  
   nginx:
     volumes:
       - ./nginx/conf.d.local:/etc/nginx/conf.d:ro
