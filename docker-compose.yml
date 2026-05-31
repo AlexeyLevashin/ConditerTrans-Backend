@@ -8,6 +8,16 @@ services:
       ASPNETCORE_URLS: http://+:8080
     networks: [backend]
 
+  file-service:
+    build:
+      context: ./file-service
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    networks:
+      - backend
+    restart: always
+
   nginx:
     image: nginx:alpine
     restart: unless-stopped
