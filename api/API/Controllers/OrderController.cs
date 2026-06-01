@@ -31,19 +31,6 @@ public class OrderController(IOrderService orderService) : BaseController
         return Ok(result.Value);
     }
 
-    [HttpGet("rescheduled")]
-    public async Task<IActionResult> GetRescheduledOrders()
-    {
-        var result = await orderService.GetRescheduledOrdersAsync(UserId);
-
-        if (result.IsFailed)
-        {
-            return BadRequest(result.Errors);
-        }
-
-        return Ok(result.Value);
-    }
-
     [HttpGet("dispatcher")]
     public async Task<IActionResult> GetDispatcherOrders([FromQuery] string? search, [FromQuery] OrderStatus? status)
     {

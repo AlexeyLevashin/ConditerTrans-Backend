@@ -18,6 +18,7 @@ public class CargoItemResponse
     public string? ProductionAddress { get; set; }
     public decimal Volume { get; set; }
     public decimal Weight { get; set; }
+    public string? Dimensions { get; set; }
     public CargoStatus Status { get; set; }
     public Guid? DriverId { get; set; }
     public string? DriverName { get; set; }

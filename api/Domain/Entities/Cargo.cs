@@ -24,6 +24,10 @@ public class Cargo
     [Column("weight")]
     public decimal Weight { get; set; }
 
+    /// <summary>Габариты для отображения, например «1.2x0.8x0.5 м».</summary>
+    [Column("dimensions")]
+    public string? Dimensions { get; set; }
+
     [Column("status")]
     public CargoStatus Status { get; set; }
 

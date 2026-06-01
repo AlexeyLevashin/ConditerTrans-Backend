@@ -200,18 +200,33 @@ public class CargoService(
             return;
         }
 
+        var now = DateTime.UtcNow;
+
         foreach (var order in orders)
         {
-            var (weight, volume) = CalculateWeightVolume(order);
-            var now = DateTime.UtcNow;
+            if (!order.ShipmentLengthM.HasValue ||
+                !order.ShipmentWidthM.HasValue ||
+                !order.ShipmentHeightM.HasValue ||
+                !order.ShipmentWeightKg.HasValue)
+            {
+                continue;
+            }
+
+            var lengthM = order.ShipmentLengthM.Value;
+            var widthM = order.ShipmentWidthM.Value;
+            var heightM = order.ShipmentHeightM.Value;
+            var weightKg = order.ShipmentWeightKg.Value;
+            var volume = lengthM * widthM * heightM;
+            var dimensionsText = $"{lengthM:0.##}×{widthM:0.##}×{heightM:0.##} м";
 
             var cargo = new Domain.Entities.Cargo
             {
-                LoadingDate = order.CreationDate,
-                UnloadingDate = order.CreationDate.AddDays(7),
+                LoadingDate = now,
+                UnloadingDate = now.AddDays(7),
                 DeliveryAddress = order.DeliveryAddress ?? "Адрес не указан",
-                Weight = weight,
+                Weight = weightKg,
                 Volume = volume,
+                Dimensions = dimensionsText,
                 Status = CargoStatus.NotAssignedToLogisticCompany,
                 Histories =
                 [
@@ -228,19 +243,5 @@ public class CargoService(
         }
 
         await unitOfWork.SaveChangesAsync();
-    }
-
-    private static (decimal weight, decimal volume) CalculateWeightVolume(Order order)
-    {
-        decimal weight = 0;
-        decimal volume = 0;
-
-        foreach (var line in order.OrderLines.Where(line => line.Product is not null))
-        {
-            weight += line.QuantityOfUnits * (decimal)line.Product!.Quantity;
-            volume += line.QuantityOfUnits;
-        }
-
-        return (weight, volume);
     }
 }

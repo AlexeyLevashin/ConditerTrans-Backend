@@ -40,6 +40,34 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
             .HasMaxLength(2000)
             .IsRequired(false);
 
+        builder.Property(o => o.ShipmentLengthM)
+            .HasPrecision(18, 3)
+            .IsRequired(false);
+
+        builder.Property(o => o.ShipmentWidthM)
+            .HasPrecision(18, 3)
+            .IsRequired(false);
+
+        builder.Property(o => o.ShipmentHeightM)
+            .HasPrecision(18, 3)
+            .IsRequired(false);
+
+        builder.Property(o => o.ShipmentWeightKg)
+            .HasPrecision(18, 3)
+            .IsRequired(false);
+
+        builder.Property(o => o.RequestedDeliveryDate)
+            .IsRequired(false);
+
+        builder.Property(o => o.DeadlineConfirmationPhase)
+            .IsRequired();
+
+        builder.Property(o => o.DeadlineConfirmationRequestedAt)
+            .IsRequired(false);
+
+        builder.Property(o => o.DeadlineConfirmationExpiresAt)
+            .IsRequired(false);
+
         builder.Property(o => o.ManagerId)
             .IsRequired();
 

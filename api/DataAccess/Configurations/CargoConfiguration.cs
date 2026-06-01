@@ -27,6 +27,10 @@ public class CargoConfiguration : IEntityTypeConfiguration<Cargo>
             .HasPrecision(18, 3)
             .IsRequired();
 
+        builder.Property(c => c.Dimensions)
+            .HasMaxLength(64)
+            .IsRequired(false);
+
         builder.Property(c => c.Status).IsRequired();
 
         builder.HasOne(c => c.LogisticCompany)

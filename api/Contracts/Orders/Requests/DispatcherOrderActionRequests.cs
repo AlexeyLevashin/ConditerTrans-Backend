@@ -14,6 +14,10 @@ public class RescheduleDispatcherOrderRequest
 public class ReadyForShipmentDispatcherOrderRequest
 {
     public DateTime ShipmentDate { get; set; }
+    public decimal LengthM { get; set; }
+    public decimal WidthM { get; set; }
+    public decimal HeightM { get; set; }
+    public decimal WeightKg { get; set; }
 }
 
 public class HandoverDispatcherOrderRequest

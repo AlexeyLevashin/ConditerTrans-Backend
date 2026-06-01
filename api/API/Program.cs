@@ -1,4 +1,5 @@
 using API;
+using API.Hangfire;
 using API.Middlewares;
 using Application;
 using DataAccess;
@@ -9,7 +10,8 @@ builder.Services.AddControllers();
 builder.Services.AddDataAccess(builder.Configuration);
 builder.Services.AddSwaggerConfiguration();
 builder.Services.AddApplication();
-builder.Services.AddInfrastructure(builder.Configuration); 
+builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddOrderDeadlineHangfire(builder.Configuration);
 builder.Services.AddTransient<ExceptionHandlingMiddlewares>();
 
 builder.Services.AddCors(options =>
@@ -39,6 +41,7 @@ app.UseSwaggerUI(options =>
 app.UseMiddleware<ExceptionHandlingMiddlewares>();
 
 app.UseCors("AllowAll");
+app.UseOrderDeadlineHangfire();
 app.UseAuthentication();
 app.UseAuthorization();
 
