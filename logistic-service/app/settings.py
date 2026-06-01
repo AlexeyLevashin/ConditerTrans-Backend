@@ -1,4 +1,3 @@
-import os
 from functools import lru_cache
 from pathlib import Path
 from urllib.parse import quote_plus
@@ -8,15 +7,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
 
-def _resolve_env_file() -> Path:
-    env = os.getenv("LOGISTIC_APP_ENV", "local").lower()
-    if env == "prod":
-        return ROOT_DIR / ".env.prod"
-    return ROOT_DIR / ".env.local"
-
-
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
+        env_file=ROOT_DIR / ".env",
         env_file_encoding="utf-8",
         extra="ignore",
     )
@@ -55,4 +48,4 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    return Settings(_env_file=_resolve_env_file())
+    return Settings()
