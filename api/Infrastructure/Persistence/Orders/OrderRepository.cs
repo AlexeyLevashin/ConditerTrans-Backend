@@ -297,6 +297,14 @@ public class OrderRepository(AppDbContext context) : IOrderRepository
 
         order.Status = status;
 
+        if (status != OrderStatus.Draft && order.OrderNumber <= 0)
+        {
+            var maxOrderNumber = await context.Orders
+                .Where(o => o.OrderNumber > 0)
+                .MaxAsync(o => (int?)o.OrderNumber) ?? 0;
+            order.OrderNumber = maxOrderNumber + 1;
+        }
+
         if (dispatcherId.HasValue)
         {
             order.DispatcherId = dispatcherId.Value;
