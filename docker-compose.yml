@@ -30,19 +30,16 @@ services:
       - backend
     restart: unless-stopped
 
-  nginx:
-    image: nginx:alpine
+  nginx-proxy-manager:
+    image: jc21/nginx-proxy-manager:latest
     restart: unless-stopped
     ports:
       - "80:80"
+      - "81:81"
       - "443:443"
     volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - ./certbot/www:/var/www/certbot:ro
-      - ./certbot/conf:/etc/letsencrypt:ro
-    depends_on:
-      - api
-      - logistic-service
+      - ./npm/data:/data
+      - ./npm/letsencrypt:/etc/letsencrypt
     networks: [backend]
 
 networks:

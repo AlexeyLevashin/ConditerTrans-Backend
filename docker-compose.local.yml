@@ -1,7 +1,5 @@
-# Local dev: HTTP only, no Let's Encrypt certs.
+# Local dev overrides.
 # Usage: docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
-#
-# Mounts conf.d.local last — it replaces production conf.d (no 02-https.conf).
 
 services:
   logistic-service:
@@ -18,7 +16,3 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
     networks: [backend]
-  
-  nginx:
-    volumes:
-      - ./nginx/conf.d.local:/etc/nginx/conf.d:ro

@@ -292,3 +292,7 @@ __pycache__/
 venv/
 __pycache__/
 .idea/
+
+# Nginx Proxy Manager
+npm/data/
+npm/letsencrypt/

@@ -50,11 +50,5 @@ remove_project_containers
 echo "### $COMPOSE_CMD up --build ..."
 compose up -d --build
 
-if compose ps nginx 2>/dev/null | grep -q "Up"; then
-  echo "### nginx config test & restart ..."
-  compose exec -T nginx nginx -t
-  compose restart nginx
-fi
-
 echo "### done."
 compose ps
