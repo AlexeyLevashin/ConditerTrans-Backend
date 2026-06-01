@@ -489,6 +489,10 @@ namespace DataAccess.Migrations
                         .HasColumnType("real")
                         .HasColumnName("expiry");
 
+                    b.Property<Guid?>("FileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("file_id");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(256)

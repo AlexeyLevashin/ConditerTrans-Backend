@@ -2,9 +2,11 @@
 using System.Text;
 using Application.Auth.Options;
 using Application.Common.Interfaces.Persistence;
+using Application.Files.Options;
 using Application.Common.Interfaces.Persistence.Repositories;
 using Application.Common.Interfaces.Services;
 using Infrastructure.Auth;
+using Infrastructure.Files;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Cargo;
 using Infrastructure.Persistence.Categories;
@@ -19,6 +21,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Infrastructure;
@@ -39,6 +42,13 @@ public static class DependencyInjection
         services.AddScoped<IOrderRepository, OrderRepository>();
         services.AddScoped<ICargoRepository, CargoRepository>();
         services.AddScoped<IOrderDeadlineConfirmationService, OrderDeadlineConfirmationService>();
+
+        services.Configure<FileServiceOptions>(configuration.GetSection(FileServiceOptions.SectionName));
+        services.AddHttpClient<IFileServiceClient, FileServiceClient>((sp, client) =>
+        {
+            var options = sp.GetRequiredService<IOptions<FileServiceOptions>>().Value;
+            client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/");
+        });
 
         services.AddJwtAuthentication(configuration);
         return services;

@@ -296,3 +296,16 @@ __pycache__/
 # Nginx Proxy Manager
 npm/data/
 npm/letsencrypt/
+
+# Frontend (trans-bulki / Expo)
+trans-bulki/node_modules/
+trans-bulki/.expo/
+trans-bulki/.expo-shared/
+trans-bulki/dist/
+trans-bulki/web-build/
+trans-bulki/android/
+trans-bulki/ios/
+trans-bulki/.env
+trans-bulki/.env.*
+!trans-bulki/.env.example
+trans-bulki/expo-env.d.ts

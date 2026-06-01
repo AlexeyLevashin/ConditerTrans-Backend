@@ -30,6 +30,16 @@ services:
       - backend
     restart: unless-stopped
 
+  trans-bulki:
+    build:
+      context: ./trans-bulki
+      args:
+        EXPO_PUBLIC_API_URL: ${EXPO_PUBLIC_API_URL:-/api}
+        EXPO_PUBLIC_TRACKING_WS_URL: ${EXPO_PUBLIC_TRACKING_WS_URL:-/logistic-service}
+        EXPO_PUBLIC_APP_URL: ${EXPO_PUBLIC_APP_URL:-}
+    restart: unless-stopped
+    networks: [backend]
+
   nginx-proxy-manager:
     image: jc21/nginx-proxy-manager:latest
     restart: unless-stopped

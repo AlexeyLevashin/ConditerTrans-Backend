@@ -6,7 +6,11 @@ using Mapster;
 
 namespace Application.Products;
 
-public class ProductService(IProductRepository productRepository, ICompanyRepository companyRepository, ICategoryRepository categoryRepository) : IProductService
+public class ProductService(
+    IProductRepository productRepository,
+    ICompanyRepository companyRepository,
+    ICategoryRepository categoryRepository,
+    IFileServiceClient fileServiceClient) : IProductService
 {
     public async Task<Result<GetProductResponse>> GetProductByIdAsync(Guid id)
     {
@@ -17,7 +21,9 @@ public class ProductService(IProductRepository productRepository, ICompanyReposi
             return Result.Fail("Продукция не найдена");
         }
         
-        return Result.Ok(product.DbToDetailDto());
+        var response = product.DbToDetailDto();
+        await ProductFileUrlEnricher.EnrichAsync([response], fileServiceClient);
+        return Result.Ok(response);
     }
 
     public async Task<Result<List<ProductListItemResponse>>> GetAllProductsAsync(List<Guid>? companyIds, List<Guid>? categoryIds)
@@ -42,6 +48,8 @@ public class ProductService(IProductRepository productRepository, ICompanyReposi
         
         var products = await productRepository.GetAllProductsAsync(companyIds, categoryIds);
         
-        return Result.Ok(products.DbToListItemsDto());
+        var response = products.DbToListItemsDto();
+        await ProductFileUrlEnricher.EnrichAsync(response, fileServiceClient);
+        return Result.Ok(response);
     }
 }

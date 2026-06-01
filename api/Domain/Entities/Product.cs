@@ -34,6 +34,9 @@ public class Product
     
     [Column("company_id")]
     public Guid CompanyId { get; set; }
+
+    [Column("file_id")]
+    public Guid? FileId { get; set; }
     
     public virtual Company? Company { get; set; }
     public virtual Category? Category { get; set; }

@@ -38,6 +38,9 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Property(p => p.CompanyId)
             .IsRequired();
 
+        builder.Property(p => p.FileId)
+            .IsRequired(false);
+
         builder.HasOne(p => p.Category)
             .WithMany()
             .HasForeignKey(p => p.CategoryId)

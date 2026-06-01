@@ -17,6 +17,7 @@ public static class ProductMapper
         Price = product.Price,
         Expiry = product.Expiry,
         FormattedQuantity = GetFormattedQuantity(product.Quantity, product.UnitsOfMeasure),
+        FileId = product.FileId,
 
         Company = product.Company != null
             ? new CompanyShortResponse
@@ -39,6 +40,7 @@ public static class ProductMapper
         Name = product.Name,
         Price = product.Price,
         FormattedQuantity = GetFormattedQuantity(product.Quantity, product.UnitsOfMeasure),
+        FileId = product.FileId,
 
         Company = product.Company != null
             ? new CompanyShortResponse
