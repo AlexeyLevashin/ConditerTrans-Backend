@@ -35,12 +35,79 @@ public static class OrderMapper
 
     public static GetOrderHistoryResponse ToHistoryDto(this List<Order> orders) => new()
     {
-        Result = orders.Select(o => new OrderHistoryItemResponse
-        {
-            Id = o.Id,
-            Status = o.Status
-        }).ToList()
+        Result = orders.Select(ToManagerListItemDto).Select(ToHistoryItemDto).ToList()
     };
+
+    public static GetManagerRescheduledOrdersResponse ToManagerRescheduledOrdersDto(this List<Order> orders) =>
+        new() { Result = orders.Select(ToManagerListItemDto).ToList() };
+
+    public static ManagerOrderDetailResponse ToManagerDetailDto(this Order order)
+    {
+        var listItem = ToManagerListItemDto(order);
+        return new ManagerOrderDetailResponse
+        {
+            Id = listItem.Id,
+            OrderNumber = listItem.OrderNumber,
+            CreationDate = listItem.CreationDate,
+            Status = listItem.Status,
+            ProductionAddress = listItem.ProductionAddress,
+            DeliveryAddress = listItem.DeliveryAddress,
+            PaymentType = listItem.PaymentType,
+            Amount = listItem.Amount,
+            Reschedule = listItem.Reschedule,
+            Lines = order.OrderLines
+                .Where(line => line.Product is not null)
+                .Select(ToCoordinatorLineDto)
+                .ToList()
+        };
+    }
+
+    private static OrderHistoryItemResponse ToHistoryItemDto(ManagerOrderListItemResponse item) => new()
+    {
+        Id = item.Id,
+        OrderNumber = item.OrderNumber,
+        CreationDate = item.CreationDate,
+        Status = item.Status,
+        Amount = item.Amount,
+        Reschedule = item.Reschedule
+    };
+
+    private static ManagerOrderListItemResponse ToManagerListItemDto(Order order)
+    {
+        var lines = order.OrderLines
+            .Where(line => line.Product is not null)
+            .Select(ToCoordinatorLineDto)
+            .ToList();
+
+        return new ManagerOrderListItemResponse
+        {
+            Id = order.Id,
+            OrderNumber = order.OrderNumber,
+            CreationDate = order.CreationDate,
+            Status = order.Status,
+            ProductionAddress = order.ProductionAddress,
+            DeliveryAddress = order.DeliveryAddress,
+            PaymentType = order.PaymentType,
+            Amount = lines.Sum(line => line.QuantityOfUnits * line.ProductPrice),
+            Reschedule = ToRescheduleProposalDto(order)
+        };
+    }
+
+    private static RescheduleProposalResponse? ToRescheduleProposalDto(Order order)
+    {
+        if (order.Status != OrderStatus.Rescheduled ||
+            !order.ProposedDeliveryDate.HasValue ||
+            string.IsNullOrWhiteSpace(order.RescheduleReason))
+        {
+            return null;
+        }
+
+        return new RescheduleProposalResponse
+        {
+            ProposedDeliveryDate = order.ProposedDeliveryDate.Value,
+            Reason = order.RescheduleReason
+        };
+    }
 
     public static GetCoordinatorPendingOrdersResponse ToCoordinatorPendingOrdersDto(this List<Order> orders) =>
         new()
@@ -77,6 +144,73 @@ public static class OrderMapper
             Lines = lines
         };
     }
+
+    public static GetDispatcherOrdersResponse ToDispatcherOrdersDto(this List<Order> orders) => new()
+    {
+        Result = orders.Select(ToDispatcherListItemDto).ToList()
+    };
+
+    public static DispatcherOrderDetailResponse ToDispatcherDetailDto(this Order order)
+    {
+        var listItem = ToDispatcherListItemDto(order);
+        var driver = order.Cargo?.Driver?.Employee;
+
+        return new DispatcherOrderDetailResponse
+        {
+            Id = listItem.Id,
+            OrderNumber = listItem.OrderNumber,
+            CompanyName = listItem.CompanyName,
+            CreationDate = listItem.CreationDate,
+            DeliveryAddress = listItem.DeliveryAddress,
+            Status = listItem.Status,
+            Amount = listItem.Amount,
+            PaymentType = listItem.PaymentType,
+            ProductionAddress = order.ProductionAddress,
+            Lines = order.OrderLines
+                .Where(line => line.Product is not null)
+                .Select(line => ToCoordinatorLineDto(line))
+                .ToList(),
+            HandoverDriver = driver is null
+                ? null
+                : FormatEmployeeName(driver.Surname, driver.Name, driver.Patronymic),
+            HandoverVehicle = null
+        };
+    }
+
+    private static DispatcherOrderListItemResponse ToDispatcherListItemDto(Order order)
+    {
+        var lines = order.OrderLines
+            .Where(line => line.Product is not null)
+            .Select(ToCoordinatorLineDto)
+            .ToList();
+
+        return new DispatcherOrderListItemResponse
+        {
+            Id = order.Id,
+            OrderNumber = order.OrderNumber,
+            CompanyName = order.Manager?.Employee?.Company?.Name ?? "—",
+            CreationDate = order.CreationDate,
+            DeliveryAddress = order.DeliveryAddress,
+            Status = order.Status,
+            PaymentType = order.PaymentType,
+            Amount = lines.Sum(line => line.QuantityOfUnits * line.ProductPrice)
+        };
+    }
+
+    private static CoordinatorOrderLineResponse ToCoordinatorLineDto(OrderLine line)
+    {
+        var product = line.Product!;
+        return new CoordinatorOrderLineResponse
+        {
+            ProductName = product.Name,
+            QuantityOfUnits = line.QuantityOfUnits,
+            ProductPrice = product.Price,
+            FormattedQuantity = FormatQuantity(product.Quantity, product.UnitsOfMeasure)
+        };
+    }
+
+    private static string FormatEmployeeName(string surname, string name, string? patronymic) =>
+        string.Join(' ', new[] { surname, name, patronymic }.Where(part => !string.IsNullOrWhiteSpace(part)));
 
     public static GetOrderByIdResponse ToOrderByIdDto(this Order order)
     {

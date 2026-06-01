@@ -3,6 +3,7 @@ using System;
 using DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DataAccess.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260601172045_AddOrderChangeHistoryComment")]
+    partial class AddOrderChangeHistoryComment
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -265,19 +268,10 @@ namespace DataAccess.Migrations
                         .HasColumnType("character varying(64)")
                         .HasColumnName("payment_type");
 
-                    b.Property<DateTime?>("ProposedDeliveryDate")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("proposed_delivery_date");
-
                     b.Property<string>("ProductionAddress")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)")
                         .HasColumnName("production_address");
-
-                    b.Property<string>("RescheduleReason")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)")
-                        .HasColumnName("reschedule_reason");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer")

@@ -15,11 +15,14 @@ public class UserService(
     IInvitationRepository invitationRepository,
     IUnitOfWork unitOfWork,
     IEmployeeRepository employeeRepository,
-    ICargoRepository cargoRepository) : IUserService
+    ICargoRepository cargoRepository,
+    IPasswordService passwordService) : IUserService
 {
     private const string AdminOnlyError = "Просматривать сотрудников может только администратор";
     private const string LogisticRoleError =
         "Для логистической компании можно назначить только роли Coordinator или Driver";
+    private const string ProductionRoleError =
+        "Для производственной компании можно назначить только роль Диспетчер производства";
     private const string DriversForbiddenMessage =
         "Просматривать водителей может только логист-координатор";
 
@@ -149,6 +152,74 @@ public class UserService(
         return Result.Ok(invitation.Id);
     }
 
+    public async Task<Result<UserResponse>> UpdateProfileAsync(Guid userId, UpdateProfileRequest request)
+    {
+        var user = await userRepository.GetByIdAsync(userId);
+        if (user is null)
+        {
+            return Result.Fail("Пользователь не найден");
+        }
+
+        if (user.Employee is null)
+        {
+            return Result.Fail("Профиль сотрудника не найден");
+        }
+
+        var email = request.Email.Trim();
+        var phone = request.Phone.Trim();
+
+        var userWithEmail = await userRepository.GetByEmailAsync(email);
+        if (userWithEmail is not null && userWithEmail.Id != userId)
+        {
+            return Result.Fail("Пользователь с таким email уже существует");
+        }
+
+        var employeeWithPhone = await employeeRepository.GetByPhoneAsync(phone);
+        if (employeeWithPhone is not null && employeeWithPhone.Id != user.EmployeeId)
+        {
+            return Result.Fail("Сотрудник с таким номером телефона уже существует");
+        }
+
+        user.Email = email;
+        user.Employee.Surname = request.Surname.Trim();
+        user.Employee.Name = request.Name.Trim();
+        user.Employee.Patronymic = string.IsNullOrWhiteSpace(request.Patronymic)
+            ? null
+            : request.Patronymic.Trim();
+        user.Employee.Phone = phone;
+
+        await unitOfWork.SaveChangesAsync();
+        return Result.Ok(user.DbToDto());
+    }
+
+    public async Task<Result> ChangePasswordAsync(Guid userId, ChangePasswordRequest request)
+    {
+        if (request.NewPassword != request.ConfirmPassword)
+        {
+            return Result.Fail("Пароли не совпадают");
+        }
+
+        var user = await userRepository.GetByIdAsync(userId);
+        if (user is null)
+        {
+            return Result.Fail("Пользователь не найден");
+        }
+
+        if (string.IsNullOrEmpty(user.PasswordHash))
+        {
+            return Result.Fail("Сначала установите пароль по приглашению");
+        }
+
+        if (!passwordService.Verify(request.CurrentPassword, user.PasswordHash))
+        {
+            return Result.Fail("Неверный текущий пароль");
+        }
+
+        user.PasswordHash = passwordService.Hash(request.NewPassword);
+        await unitOfWork.SaveChangesAsync();
+        return Result.Ok();
+    }
+
     private static Result<UserRole> ResolveUserRole(User admin, UserRole? requestedRole)
     {
         if (admin.UserRole == UserRole.Coordinator)
@@ -161,6 +232,18 @@ public class UserService(
             }
 
             return Result.Fail(LogisticRoleError);
+        }
+
+        if (admin.UserRole == UserRole.Dispatcher)
+        {
+            var role = requestedRole ?? UserRole.Dispatcher;
+
+            if (role == UserRole.Dispatcher)
+            {
+                return Result.Ok(role);
+            }
+
+            return Result.Fail(ProductionRoleError);
         }
 
         if (requestedRole.HasValue && requestedRole.Value != admin.UserRole)

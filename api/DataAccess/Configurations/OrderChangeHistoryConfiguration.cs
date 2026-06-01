@@ -21,5 +21,9 @@ public class OrderChangeHistoryConfiguration : IEntityTypeConfiguration<OrderCha
 
         builder.Property(h => h.OrderId)
             .IsRequired();
+
+        builder.Property(h => h.Comment)
+            .HasMaxLength(2000)
+            .IsRequired(false);
     }
 }

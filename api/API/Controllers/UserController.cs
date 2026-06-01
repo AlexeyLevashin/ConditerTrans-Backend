@@ -72,4 +72,30 @@ public class UserController(IUserService userService) : BaseController
 
         return BadRequest(new { Error = result.Errors.FirstOrDefault()?.Message });
     }
+
+    [HttpPut("me")]
+    public async Task<IActionResult> UpdateMe(UpdateProfileRequest request)
+    {
+        var result = await userService.UpdateProfileAsync(UserId, request);
+
+        if (result.IsFailed)
+        {
+            return BadRequest(new { Error = result.Errors.FirstOrDefault()?.Message });
+        }
+
+        return Ok(result.Value);
+    }
+
+    [HttpPost("me/change-password")]
+    public async Task<IActionResult> ChangePassword(ChangePasswordRequest request)
+    {
+        var result = await userService.ChangePasswordAsync(UserId, request);
+
+        if (result.IsFailed)
+        {
+            return BadRequest(new { Error = result.Errors.FirstOrDefault()?.Message });
+        }
+
+        return Ok();
+    }
 }

@@ -4,7 +4,11 @@ namespace Contracts.Orders.Requests;
 
 public class SubmitOrderRequest
 {
-    public string Address { get; set; } = null!;
+    [JsonPropertyName("production_address")]
+    public string ProductionAddress { get; set; } = null!;
+
+    [JsonPropertyName("delivery_address")]
+    public string DeliveryAddress { get; set; } = null!;
 
     [JsonPropertyName("type_payment")]
     public string TypePayment { get; set; } = null!;
