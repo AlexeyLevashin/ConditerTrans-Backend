@@ -18,6 +18,10 @@ public class DispatcherOrderListItemResponse
     public OrderStatus Status { get; set; }
     public decimal Amount { get; set; }
     public string? PaymentType { get; set; }
+    public DateTime? RequestedDeliveryDate { get; set; }
+    public bool RequiresDeadlineConfirmation { get; set; }
+    public DateTime? DeadlineConfirmationExpiresAt { get; set; }
+    public DeadlineConfirmationPhase DeadlineConfirmationPhase { get; set; }
 }
 
 public class DispatcherOrderDetailResponse : DispatcherOrderListItemResponse

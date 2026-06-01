@@ -13,6 +13,7 @@ using Infrastructure.Persistence.Employees;
 using Infrastructure.Persistence.Invitation;
 using Infrastructure.Persistence.Orders;
 using Infrastructure.Persistence.Products;
+using Infrastructure.Orders;
 using Infrastructure.Persistence.Users;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
@@ -37,6 +38,7 @@ public static class DependencyInjection
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IOrderRepository, OrderRepository>();
         services.AddScoped<ICargoRepository, CargoRepository>();
+        services.AddScoped<IOrderDeadlineConfirmationService, OrderDeadlineConfirmationService>();
 
         services.AddJwtAuthentication(configuration);
         return services;

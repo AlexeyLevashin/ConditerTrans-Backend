@@ -12,4 +12,7 @@ public class SubmitOrderRequest
 
     [JsonPropertyName("type_payment")]
     public string TypePayment { get; set; } = null!;
+
+    [JsonPropertyName("requested_delivery_date")]
+    public DateTime RequestedDeliveryDate { get; set; }
 }

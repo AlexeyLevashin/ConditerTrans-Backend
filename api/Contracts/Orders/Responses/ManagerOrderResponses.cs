@@ -2,11 +2,6 @@ using Common.Enums;
 
 namespace Contracts.Orders.Responses;
 
-public class GetManagerRescheduledOrdersResponse
-{
-    public List<ManagerOrderListItemResponse> Result { get; set; } = [];
-}
-
 public class ManagerOrderListItemResponse
 {
     public Guid Id { get; set; }

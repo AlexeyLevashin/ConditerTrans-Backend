@@ -12,6 +12,7 @@ public class OrderRepository(AppDbContext context) : IOrderRepository
     {
         return context.Orders
             .Where(o => o.Status == OrderStatus.Draft && o.ManagerId == managerId)
+            .OrderByDescending(o => o.CreationDate)
             .Select(o => (Guid?)o.Id)
             .FirstOrDefaultAsync();
     }
@@ -23,7 +24,15 @@ public class OrderRepository(AppDbContext context) : IOrderRepository
             .Where(o => o.Status == OrderStatus.Draft && o.ManagerId == managerId)
             .Include(o => o.OrderLines)
                 .ThenInclude(ol => ol.Product)
+            .OrderByDescending(o => o.CreationDate)
             .FirstOrDefaultAsync();
+    }
+
+    public Task<bool> HasBlockingManagerOrderAsync(Guid managerId)
+    {
+        return context.Orders.AnyAsync(o =>
+            o.ManagerId == managerId &&
+            (o.Status == OrderStatus.PendingApproval || o.Status == OrderStatus.Rescheduled));
     }
 
     public async Task CreateDraftAsync(Order order, Guid productId, int quantityOfUnits)
@@ -43,8 +52,16 @@ public class OrderRepository(AppDbContext context) : IOrderRepository
         await context.Orders.AddAsync(order);
     }
 
-    public async Task UpsertOrderLineAsync(Guid orderId, Guid productId, int quantityOfUnits)
+    public async Task<bool> UpsertOrderLineAsync(Guid orderId, Guid productId, int quantityOfUnits)
     {
+        var isDraft = await context.Orders.AnyAsync(o =>
+            o.Id == orderId && o.Status == OrderStatus.Draft);
+
+        if (!isDraft)
+        {
+            return false;
+        }
+
         var rowsUpdated = await context.OrderLines
             .Where(ol => ol.OrderId == orderId && ol.ProductId == productId)
             .ExecuteUpdateAsync(setters => setters
@@ -52,7 +69,7 @@ public class OrderRepository(AppDbContext context) : IOrderRepository
 
         if (rowsUpdated > 0)
         {
-            return;
+            return true;
         }
 
         await context.OrderLines.AddAsync(new OrderLine
@@ -61,6 +78,8 @@ public class OrderRepository(AppDbContext context) : IOrderRepository
             ProductId = productId,
             QuantityOfUnits = quantityOfUnits
         });
+
+        return true;
     }
 
     public Task<List<Order>> GetAllByManagerIdAsync(Guid managerId)
@@ -68,17 +87,6 @@ public class OrderRepository(AppDbContext context) : IOrderRepository
         return context.Orders
             .AsNoTracking()
             .Where(o => o.ManagerId == managerId && o.Status != OrderStatus.Draft)
-            .Include(o => o.OrderLines)
-                .ThenInclude(ol => ol.Product)
-            .OrderByDescending(o => o.CreationDate)
-            .ToListAsync();
-    }
-
-    public Task<List<Order>> GetRescheduledByManagerIdAsync(Guid managerId)
-    {
-        return context.Orders
-            .AsNoTracking()
-            .Where(o => o.ManagerId == managerId && o.Status == OrderStatus.Rescheduled)
             .Include(o => o.OrderLines)
                 .ThenInclude(ol => ol.Product)
             .OrderByDescending(o => o.CreationDate)
@@ -111,10 +119,14 @@ public class OrderRepository(AppDbContext context) : IOrderRepository
         Guid managerId,
         string productionAddress,
         string deliveryAddress,
-        string paymentType)
+        string paymentType,
+        DateTime requestedDeliveryDate)
     {
-        var maxOrderNumber = await context.Orders.MaxAsync(o => (int?)o.OrderNumber) ?? 0;
+        var maxOrderNumber = await context.Orders
+            .Where(o => o.OrderNumber > 0)
+            .MaxAsync(o => (int?)o.OrderNumber) ?? 0;
         var nextOrderNumber = maxOrderNumber + 1;
+        var deliveryDate = requestedDeliveryDate.Date;
 
         await context.Orders
             .Where(o => o.Id == orderId
@@ -125,6 +137,7 @@ public class OrderRepository(AppDbContext context) : IOrderRepository
                 .SetProperty(o => o.DeliveryAddress, deliveryAddress)
                 .SetProperty(o => o.PaymentType, paymentType)
                 .SetProperty(o => o.OrderNumber, nextOrderNumber)
+                .SetProperty(o => o.RequestedDeliveryDate, deliveryDate)
                 .SetProperty(o => o.Status, OrderStatus.PendingApproval));
 
         await context.OrderChangeHistories.AddAsync(new OrderChangeHistory
@@ -225,6 +238,47 @@ public class OrderRepository(AppDbContext context) : IOrderRepository
             .AnyAsync(o => o.Id == orderId);
     }
 
+    public async Task<bool> MarkReadyForShipmentAsync(
+        Guid orderId,
+        Guid dispatcherId,
+        DateTime shipmentDate,
+        decimal lengthM,
+        decimal widthM,
+        decimal heightM,
+        decimal weightKg,
+        Guid cargoId,
+        string? comment)
+    {
+        var order = await context.Orders.FirstOrDefaultAsync(o =>
+            o.Id == orderId && o.Status == OrderStatus.Confirmed && o.CargoId == null);
+
+        if (order is null)
+        {
+            return false;
+        }
+
+        order.Status = OrderStatus.AwaitingShipment;
+        order.DispatcherId = dispatcherId;
+        order.ShipmentLengthM = lengthM;
+        order.ShipmentWidthM = widthM;
+        order.ShipmentHeightM = heightM;
+        order.ShipmentWeightKg = weightKg;
+        order.CargoId = cargoId;
+        order.DeadlineConfirmationPhase = DeadlineConfirmationPhase.None;
+        order.DeadlineConfirmationRequestedAt = null;
+        order.DeadlineConfirmationExpiresAt = null;
+
+        await context.OrderChangeHistories.AddAsync(new OrderChangeHistory
+        {
+            OrderId = orderId,
+            OrderStatus = OrderStatus.AwaitingShipment,
+            ChangeTime = DateTime.UtcNow,
+            Comment = comment
+        });
+
+        return true;
+    }
+
     public async Task UpdateStatusAsync(
         Guid orderId,
         OrderStatus status,
@@ -264,6 +318,13 @@ public class OrderRepository(AppDbContext context) : IOrderRepository
             order.RescheduleReason = rescheduleReason;
         }
 
+        if (status == OrderStatus.Rescheduled)
+        {
+            order.DeadlineConfirmationPhase = DeadlineConfirmationPhase.None;
+            order.DeadlineConfirmationRequestedAt = null;
+            order.DeadlineConfirmationExpiresAt = null;
+        }
+
         await context.OrderChangeHistories.AddAsync(new OrderChangeHistory
         {
             OrderId = orderId,
@@ -271,6 +332,80 @@ public class OrderRepository(AppDbContext context) : IOrderRepository
             ChangeTime = DateTime.UtcNow,
             Comment = comment
         });
+    }
+
+    public Task<List<Order>> GetOrdersNeedingDeadlineWindowOpenAsync(
+        DateTime utcNow,
+        CancellationToken cancellationToken = default)
+    {
+        var today = utcNow.Date;
+
+        return context.Orders
+            .Where(o =>
+                o.Status == OrderStatus.Confirmed &&
+                o.CargoId == null &&
+                o.RequestedDeliveryDate != null &&
+                o.DeadlineConfirmationPhase == DeadlineConfirmationPhase.None &&
+                today >= o.RequestedDeliveryDate!.Value.Date.AddDays(-2))
+            .ToListAsync(cancellationToken);
+    }
+
+    public Task<List<Order>> GetOrdersWithExpiredDeadlineConfirmationAsync(
+        DateTime utcNow,
+        CancellationToken cancellationToken = default)
+    {
+        return context.Orders
+            .Where(o =>
+                o.Status == OrderStatus.Confirmed &&
+                o.CargoId == null &&
+                o.DeadlineConfirmationExpiresAt != null &&
+                o.DeadlineConfirmationExpiresAt <= utcNow &&
+                o.DeadlineConfirmationPhase != DeadlineConfirmationPhase.None)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task OpenDeadlineConfirmationAsync(
+        Guid orderId,
+        DeadlineConfirmationPhase phase,
+        DateTime requestedAt,
+        DateTime expiresAt,
+        string comment)
+    {
+        var order = await context.Orders.FirstOrDefaultAsync(o => o.Id == orderId);
+        if (order is null)
+        {
+            return;
+        }
+
+        order.DeadlineConfirmationPhase = phase;
+        order.DeadlineConfirmationRequestedAt = requestedAt;
+        order.DeadlineConfirmationExpiresAt = expiresAt;
+
+        await context.OrderChangeHistories.AddAsync(new OrderChangeHistory
+        {
+            OrderId = orderId,
+            OrderStatus = order.Status,
+            ChangeTime = requestedAt,
+            Comment = comment
+        });
+    }
+
+    public async Task ClearDeadlineConfirmationAsync(Guid orderId)
+    {
+        await context.Orders
+            .Where(o => o.Id == orderId)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(o => o.DeadlineConfirmationPhase, DeadlineConfirmationPhase.None)
+                .SetProperty(o => o.DeadlineConfirmationRequestedAt, (DateTime?)null)
+                .SetProperty(o => o.DeadlineConfirmationExpiresAt, (DateTime?)null));
+    }
+
+    public async Task SetRequestedDeliveryDateAsync(Guid orderId, DateTime requestedDeliveryDate)
+    {
+        await context.Orders
+            .Where(o => o.Id == orderId)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(o => o.RequestedDeliveryDate, requestedDeliveryDate.Date));
     }
 
     private IQueryable<Order> BuildDispatcherOrdersQuery(Guid productionCompanyId)

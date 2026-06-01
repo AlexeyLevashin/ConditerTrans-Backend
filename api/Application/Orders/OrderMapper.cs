@@ -10,7 +10,7 @@ public static class OrderMapper
     public static GetCurrentOrderResponse ToCurrentOrderDto(this Order order) => new()
     {
         Id = order.Id,
-        OrderNumber = order.OrderNumber,
+        OrderNumber = order.OrderNumber > 0 ? order.OrderNumber : 0,
         CreationDate = order.CreationDate,
         Status = order.Status,
         ProductionAddress = order.ProductionAddress,
@@ -37,9 +37,6 @@ public static class OrderMapper
     {
         Result = orders.Select(ToManagerListItemDto).Select(ToHistoryItemDto).ToList()
     };
-
-    public static GetManagerRescheduledOrdersResponse ToManagerRescheduledOrdersDto(this List<Order> orders) =>
-        new() { Result = orders.Select(ToManagerListItemDto).ToList() };
 
     public static ManagerOrderDetailResponse ToManagerDetailDto(this Order order)
     {
@@ -187,13 +184,17 @@ public static class OrderMapper
         return new DispatcherOrderListItemResponse
         {
             Id = order.Id,
-            OrderNumber = order.OrderNumber,
+            OrderNumber = order.OrderNumber > 0 ? order.OrderNumber : 0,
             CompanyName = order.Manager?.Employee?.Company?.Name ?? "—",
             CreationDate = order.CreationDate,
             DeliveryAddress = order.DeliveryAddress,
             Status = order.Status,
             PaymentType = order.PaymentType,
-            Amount = lines.Sum(line => line.QuantityOfUnits * line.ProductPrice)
+            Amount = lines.Sum(line => line.QuantityOfUnits * line.ProductPrice),
+            RequestedDeliveryDate = order.RequestedDeliveryDate,
+            RequiresDeadlineConfirmation = RequiresDeadlineConfirmation(order),
+            DeadlineConfirmationExpiresAt = order.DeadlineConfirmationExpiresAt,
+            DeadlineConfirmationPhase = order.DeadlineConfirmationPhase
         };
     }
 
@@ -208,6 +209,11 @@ public static class OrderMapper
             FormattedQuantity = FormatQuantity(product.Quantity, product.UnitsOfMeasure)
         };
     }
+
+    private static bool RequiresDeadlineConfirmation(Order order) =>
+        order.Status == OrderStatus.Confirmed &&
+        order.CargoId == null &&
+        order.DeadlineConfirmationPhase != DeadlineConfirmationPhase.None;
 
     private static string FormatEmployeeName(string surname, string name, string? patronymic) =>
         string.Join(' ', new[] { surname, name, patronymic }.Where(part => !string.IsNullOrWhiteSpace(part)));

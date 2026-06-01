@@ -11,6 +11,7 @@ namespace Application.Orders;
 
 public class OrderService(
     IOrderRepository orderRepository,
+    ICargoRepository cargoRepository,
     IUserRepository userRepository,
     IProductRepository productRepository,
     ICompanyRepository companyRepository,
@@ -32,7 +33,14 @@ public class OrderService(
             return Result.Fail("Товар не найден");
         }
 
+        var hasBlockingOrder = await orderRepository.HasBlockingManagerOrderAsync(managerId);
         var draftOrderId = await orderRepository.GetDraftOrderIdByManagerIdAsync(managerId);
+
+        // Пока есть заказ на согласовании/пересогласовании — новые позиции только в новый черновик.
+        if (hasBlockingOrder)
+        {
+            draftOrderId = null;
+        }
 
         if (draftOrderId is null)
         {
@@ -45,12 +53,12 @@ public class OrderService(
 
             await orderRepository.CreateDraftAsync(order, request.ProductId, request.QuantityOfUnits);
         }
-        else
+        else if (!await orderRepository.UpsertOrderLineAsync(
+                     draftOrderId.Value,
+                     request.ProductId,
+                     request.QuantityOfUnits))
         {
-            await orderRepository.UpsertOrderLineAsync(
-                draftOrderId.Value,
-                request.ProductId,
-                request.QuantityOfUnits);
+            return Result.Fail("Нельзя изменить заказ, который уже отправлен на согласование");
         }
 
         await unitOfWork.SaveChangesAsync();
@@ -102,17 +110,6 @@ public class OrderService(
         return Result.Ok(order.ToManagerDetailDto());
     }
 
-    public async Task<Result<GetManagerRescheduledOrdersResponse>> GetRescheduledOrdersAsync(Guid managerId)
-    {
-        if (await userRepository.GetByIdAsync(managerId) is null)
-        {
-            return Result.Fail("Пользователь не найден");
-        }
-
-        var orders = await orderRepository.GetRescheduledByManagerIdAsync(managerId);
-        return Result.Ok(orders.ToManagerRescheduledOrdersDto());
-    }
-
     public async Task<Result<ManagerOrderDetailResponse>> AcceptManagerRescheduleAsync(
         Guid managerId,
         Guid orderId,
@@ -134,6 +131,8 @@ public class OrderService(
             ? $"Менеджер согласовал перенос сроков на {dateText}"
             : $"{request.Comment.Trim()} (дата: {dateText})";
 
+        var newDeliveryDate = order.ProposedDeliveryDate.Value.Date;
+
         await orderRepository.UpdateStatusAsync(
             orderId,
             OrderStatus.Confirmed,
@@ -141,6 +140,9 @@ public class OrderService(
             productionAddress: null,
             comment: comment,
             clearRescheduleProposal: true);
+
+        await orderRepository.SetRequestedDeliveryDateAsync(orderId, newDeliveryDate);
+        await orderRepository.ClearDeadlineConfirmationAsync(orderId);
 
         await unitOfWork.SaveChangesAsync();
         return await GetByIdAsync(managerId, orderId);
@@ -200,12 +202,23 @@ public class OrderService(
             return Result.Fail("Нельзя отправить пустой заказ");
         }
 
+        if (request.RequestedDeliveryDate == default)
+        {
+            return Result.Fail("Укажите дату доставки");
+        }
+
+        if (request.RequestedDeliveryDate.Date < DateTime.UtcNow.Date)
+        {
+            return Result.Fail("Дата доставки не может быть в прошлом");
+        }
+
         await orderRepository.SubmitDraftAsync(
             orderId,
             managerId,
             request.ProductionAddress.Trim(),
             request.DeliveryAddress.Trim(),
-            request.TypePayment.Trim());
+            request.TypePayment.Trim(),
+            request.RequestedDeliveryDate.Date);
 
         await unitOfWork.SaveChangesAsync();
         return Result.Ok();
@@ -328,18 +341,101 @@ public class OrderService(
         Guid orderId,
         ReadyForShipmentDispatcherOrderRequest request)
     {
-        var comment = $"Готов к отправке: {request.ShipmentDate:yyyy-MM-dd}";
+        if (request.LengthM <= 0 || request.WidthM <= 0 || request.HeightM <= 0)
+        {
+            return Result.Fail("Укажите габариты: длина, ширина и высота в метрах");
+        }
 
-        return await ChangeDispatcherOrderStatusAsync(
-            userId,
-            userRole,
-            productionCompanyId,
+        if (request.WeightKg <= 0)
+        {
+            return Result.Fail("Укажите вес груза в килограммах");
+        }
+
+        var access = await EnsureDispatcherAsync(userId, userRole);
+        if (access.IsFailed)
+        {
+            return Result.Fail(access.Errors);
+        }
+
+        if (!await orderRepository.BelongsToProductionCompanyAsync(orderId, productionCompanyId))
+        {
+            return Result.Fail("Заказ не найден");
+        }
+
+        var order = await orderRepository.GetByIdForDispatcherAsync(orderId, productionCompanyId);
+        if (order is null)
+        {
+            return Result.Fail("Заказ не найден");
+        }
+
+        if (order.Status != OrderStatus.Confirmed)
+        {
+            return Result.Fail("Недопустимый статус заказа для этого действия");
+        }
+
+        if (order.CargoId.HasValue)
+        {
+            return Result.Fail("Груз по этому заказу уже создан");
+        }
+
+        var shipmentDate = request.ShipmentDate.Date;
+        var volume = request.LengthM * request.WidthM * request.HeightM;
+        var dimensionsText = FormatShipmentDimensions(request.LengthM, request.WidthM, request.HeightM);
+        var now = DateTime.UtcNow;
+
+        var cargo = new Cargo
+        {
+            LoadingDate = shipmentDate,
+            UnloadingDate = shipmentDate.AddDays(7),
+            DeliveryAddress = order.DeliveryAddress ?? "Адрес не указан",
+            Weight = request.WeightKg,
+            Volume = volume,
+            Dimensions = dimensionsText,
+            Status = CargoStatus.NotAssignedToLogisticCompany,
+            Histories =
+            [
+                new CargoChangeHistory
+                {
+                    CargoStatus = CargoStatus.NotAssignedToLogisticCompany,
+                    ChangeTime = now
+                }
+            ]
+        };
+
+        await cargoRepository.AddAsync(cargo);
+
+        var comment =
+            $"Готов к отправке: {shipmentDate:yyyy-MM-dd}, {dimensionsText}, {request.WeightKg:0.###} кг";
+
+        var marked = await orderRepository.MarkReadyForShipmentAsync(
             orderId,
-            allowedStatuses: [OrderStatus.Confirmed],
-            newStatus: OrderStatus.AwaitingShipment,
-            comment: comment,
-            setProductionAddress: false);
+            userId,
+            shipmentDate,
+            request.LengthM,
+            request.WidthM,
+            request.HeightM,
+            request.WeightKg,
+            cargo.Id,
+            comment);
+
+        if (!marked)
+        {
+            return Result.Fail("Не удалось подтвердить готовность к отправке");
+        }
+
+        await unitOfWork.SaveChangesAsync();
+
+        var updated = await orderRepository.GetByIdForDispatcherAsync(orderId, productionCompanyId);
+        if (updated is null)
+        {
+            return Result.Fail("Заказ не найден");
+        }
+
+        return Result.Ok(updated.ToDispatcherDetailDto());
     }
+
+    private static string FormatShipmentDimensions(decimal lengthM, decimal widthM, decimal heightM) =>
+        $"{lengthM:0.##}×{widthM:0.##}×{heightM:0.##} м";
 
     public async Task<Result<DispatcherOrderDetailResponse>> HandoverDispatcherOrderAsync(
         Guid userId,

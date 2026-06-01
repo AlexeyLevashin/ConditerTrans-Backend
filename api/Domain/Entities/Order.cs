@@ -31,6 +31,31 @@ public class Order
     /// <summary>Причина срыва сроков от производства (ожидает ответа менеджера).</summary>
     [Column("reschedule_reason")]
     public string? RescheduleReason { get; set; }
+
+    [Column("shipment_length_m")]
+    public decimal? ShipmentLengthM { get; set; }
+
+    [Column("shipment_width_m")]
+    public decimal? ShipmentWidthM { get; set; }
+
+    [Column("shipment_height_m")]
+    public decimal? ShipmentHeightM { get; set; }
+
+    [Column("shipment_weight_kg")]
+    public decimal? ShipmentWeightKg { get; set; }
+
+    /// <summary>Согласованная дата доставки (для напоминания за 2 дня).</summary>
+    [Column("requested_delivery_date")]
+    public DateTime? RequestedDeliveryDate { get; set; }
+
+    [Column("deadline_confirmation_phase")]
+    public DeadlineConfirmationPhase DeadlineConfirmationPhase { get; set; }
+
+    [Column("deadline_confirmation_requested_at")]
+    public DateTime? DeadlineConfirmationRequestedAt { get; set; }
+
+    [Column("deadline_confirmation_expires_at")]
+    public DateTime? DeadlineConfirmationExpiresAt { get; set; }
     
     [Column("status")]
     public OrderStatus Status { get; set; }

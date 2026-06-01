@@ -7,10 +7,10 @@ public interface IOrderRepository
 {
     Task<Guid?> GetDraftOrderIdByManagerIdAsync(Guid managerId);
     Task<Order?> GetDraftByManagerIdAsync(Guid managerId);
+    Task<bool> HasBlockingManagerOrderAsync(Guid managerId);
     Task CreateDraftAsync(Order order, Guid productId, int quantityOfUnits);
-    Task UpsertOrderLineAsync(Guid orderId, Guid productId, int quantityOfUnits);
+    Task<bool> UpsertOrderLineAsync(Guid orderId, Guid productId, int quantityOfUnits);
     Task<List<Order>> GetAllByManagerIdAsync(Guid managerId);
-    Task<List<Order>> GetRescheduledByManagerIdAsync(Guid managerId);
     Task<Order?> GetByIdAndManagerIdAsync(Guid orderId, Guid managerId);
     Task<bool> ExistsDraftForManagerAsync(Guid orderId, Guid managerId);
     Task<bool> HasOrderLinesAsync(Guid orderId);
@@ -19,7 +19,18 @@ public interface IOrderRepository
         Guid managerId,
         string productionAddress,
         string deliveryAddress,
-        string paymentType);
+        string paymentType,
+        DateTime requestedDeliveryDate);
+
+    Task<List<Order>> GetOrdersNeedingDeadlineWindowOpenAsync(DateTime utcNow, CancellationToken cancellationToken = default);
+
+    Task<List<Order>> GetOrdersWithExpiredDeadlineConfirmationAsync(DateTime utcNow, CancellationToken cancellationToken = default);
+
+    Task OpenDeadlineConfirmationAsync(Guid orderId, DeadlineConfirmationPhase phase, DateTime requestedAt, DateTime expiresAt, string comment);
+
+    Task ClearDeadlineConfirmationAsync(Guid orderId);
+
+    Task SetRequestedDeliveryDateAsync(Guid orderId, DateTime requestedDeliveryDate);
     Task<List<Order>> GetAwaitingShipmentAsync();
     Task<List<Order>> GetAwaitingShipmentWithoutCargoAsync();
     Task<Order?> GetByIdWithLinesAsync(Guid orderId);
@@ -28,6 +39,17 @@ public interface IOrderRepository
     Task<List<Order>> GetForDispatcherAsync(Guid productionCompanyId, string? search, OrderStatus? status);
     Task<Order?> GetByIdForDispatcherAsync(Guid orderId, Guid productionCompanyId);
     Task<bool> BelongsToProductionCompanyAsync(Guid orderId, Guid productionCompanyId);
+    Task<bool> MarkReadyForShipmentAsync(
+        Guid orderId,
+        Guid dispatcherId,
+        DateTime shipmentDate,
+        decimal lengthM,
+        decimal widthM,
+        decimal heightM,
+        decimal weightKg,
+        Guid cargoId,
+        string? comment);
+
     Task UpdateStatusAsync(
         Guid orderId,
         OrderStatus status,

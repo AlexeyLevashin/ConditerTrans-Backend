@@ -11,7 +11,6 @@ public interface IOrderService
     Task<Result<GetCurrentOrderResponse>> GetCurrentDraftAsync(Guid managerId);
     Task<Result<GetOrderHistoryResponse>> GetHistoryAsync(Guid managerId);
     Task<Result<ManagerOrderDetailResponse>> GetByIdAsync(Guid managerId, Guid orderId);
-    Task<Result<GetManagerRescheduledOrdersResponse>> GetRescheduledOrdersAsync(Guid managerId);
     Task<Result<ManagerOrderDetailResponse>> AcceptManagerRescheduleAsync(
         Guid managerId,
         Guid orderId,
