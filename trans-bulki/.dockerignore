@@ -1,0 +1,14 @@
+node_modules
+.expo
+.expo-shared
+dist
+web-build
+android
+ios
+.git
+.idea
+.vscode
+*.log
+.env
+.env.*
+!/.env.example
