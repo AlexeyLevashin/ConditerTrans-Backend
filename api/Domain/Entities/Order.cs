@@ -23,6 +23,14 @@ public class Order
 
     [Column("payment_type")]
     public string? PaymentType { get; set; }
+
+    /// <summary>Предложенная производством дата поставки при пересогласовании.</summary>
+    [Column("proposed_delivery_date")]
+    public DateTime? ProposedDeliveryDate { get; set; }
+
+    /// <summary>Причина срыва сроков от производства (ожидает ответа менеджера).</summary>
+    [Column("reschedule_reason")]
+    public string? RescheduleReason { get; set; }
     
     [Column("status")]
     public OrderStatus Status { get; set; }

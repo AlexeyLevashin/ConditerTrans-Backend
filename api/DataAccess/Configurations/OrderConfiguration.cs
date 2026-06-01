@@ -33,6 +33,13 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
             .HasMaxLength(64)
             .IsRequired(false);
 
+        builder.Property(o => o.ProposedDeliveryDate)
+            .IsRequired(false);
+
+        builder.Property(o => o.RescheduleReason)
+            .HasMaxLength(2000)
+            .IsRequired(false);
+
         builder.Property(o => o.ManagerId)
             .IsRequired();
 
