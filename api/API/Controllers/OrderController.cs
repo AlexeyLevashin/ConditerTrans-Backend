@@ -33,6 +33,38 @@ public class OrderController(
         return Ok(result.Value);
     }
 
+    /// <summary>
+    /// Анализ надёжности партнёра (производство / транспорт). Только завершённые заказы (Delivered).
+    /// </summary>
+    [HttpGet("manager/reports/partner-reliability")]
+    public async Task<IActionResult> GetManagerPartnerReliability(
+        [FromQuery] Guid companyId,
+        [FromQuery] string? dateFrom,
+        [FromQuery] string? dateTo,
+        [FromQuery] string? partnerType)
+    {
+        var result = await orderService.GetManagerPartnerReliabilityAsync(
+            UserId,
+            UserRole,
+            CompanyId,
+            companyId,
+            dateFrom,
+            dateTo,
+            partnerType);
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        if (result.Errors.Any(error => error.Message == "Доступно только менеджеру по закупкам"))
+        {
+            return Forbid();
+        }
+
+        return BadRequest(result.Errors);
+    }
+
     [HttpGet("dispatcher/reports/refusals")]
     public async Task<IActionResult> GetDispatcherRejectionReport(
         [FromQuery] string? dateFrom,

@@ -52,4 +52,50 @@ public class ProductService(
         await ProductFileUrlEnricher.EnrichAsync(response, fileServiceClient);
         return Result.Ok(response);
     }
+
+    public async Task<Result<GetProductsPagedResponse>> GetProductsPagedAsync(
+        List<Guid>? companyIds,
+        List<Guid>? categoryIds,
+        int page,
+        int pageSize)
+    {
+        if (companyIds != null && companyIds.Count > 0)
+        {
+            if (!await companyRepository.CheckAllExistAsync(companyIds))
+            {
+                return Result.Fail("Одна или несколько указанных компаний не найдены.");
+            }
+        }
+
+        if (categoryIds != null && categoryIds.Count > 0)
+        {
+            if (!await categoryRepository.CheckAllExistAsync(categoryIds))
+            {
+                return Result.Fail("Одна или несколько указанных категорий не найдены.");
+            }
+        }
+
+        var safePage = Math.Max(1, page);
+        var safePageSize = Math.Clamp(pageSize, 1, 100);
+
+        var (products, totalCount) = await productRepository.GetProductsPagedAsync(
+            companyIds,
+            categoryIds,
+            safePage,
+            safePageSize);
+
+        var items = products.DbToListItemsDto();
+        await ProductFileUrlEnricher.EnrichAsync(items, fileServiceClient);
+
+        var totalPages = totalCount == 0 ? 0 : (int)Math.Ceiling(totalCount / (double)safePageSize);
+
+        return Result.Ok(new GetProductsPagedResponse
+        {
+            Result = items,
+            TotalCount = totalCount,
+            Page = safePage,
+            PageSize = safePageSize,
+            TotalPages = totalPages
+        });
+    }
 }

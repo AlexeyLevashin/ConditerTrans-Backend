@@ -39,4 +39,37 @@ public class ProductRepository(AppDbContext context) : IProductRepository
 
         return await query.ToListAsync();
     }
+
+    public async Task<(List<Product> Items, int TotalCount)> GetProductsPagedAsync(
+        List<Guid>? companyIds,
+        List<Guid>? categoryIds,
+        int page,
+        int pageSize)
+    {
+        IQueryable<Product> query = context.Products
+            .AsNoTracking()
+            .Include(c => c.Company)
+            .Include(ct => ct.Category);
+
+        if (companyIds != null && companyIds.Count > 0)
+        {
+            query = query.Where(c => companyIds.Contains(c.CompanyId));
+        }
+
+        if (categoryIds != null && categoryIds.Count > 0)
+        {
+            query = query.Where(ct => categoryIds.Contains(ct.CategoryId));
+        }
+
+        var totalCount = await query.CountAsync();
+
+        var items = await query
+            .OrderBy(p => p.Name)
+            .ThenBy(p => p.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (items, totalCount);
+    }
 }

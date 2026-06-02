@@ -1,4 +1,5 @@
-﻿using Common.Enums;
+﻿using Application.Orders;
+using Common.Enums;
 using Domain.Entities;
 
 namespace Application.Common.Interfaces.Persistence.Repositories;
@@ -74,6 +75,13 @@ public interface IOrderRepository
 
     Task<List<(string ProductName, int OrderCount)>> GetProductRatingAsync(
         Guid productionCompanyId,
+        DateTime? dateFromUtc,
+        DateTime? dateToUtcExclusive);
+
+    Task<List<PartnerReliabilityOrderFact>> GetPartnerReliabilityFactsAsync(
+        Guid purchasingCompanyId,
+        Guid partnerCompanyId,
+        PartnerAnalysisKind partnerKind,
         DateTime? dateFromUtc,
         DateTime? dateToUtcExclusive);
 }

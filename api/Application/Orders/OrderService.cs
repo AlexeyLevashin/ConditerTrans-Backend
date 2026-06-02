@@ -19,6 +19,7 @@ public class OrderService(
     IUnitOfWork unitOfWork) : IOrderService
 {
     private const string DispatcherOnlyError = "Доступно только диспетчеру производства";
+    private const string ManagerOnlyError = "Доступно только менеджеру по закупкам";
 
     public async Task<Result> CreateAsync(Guid managerId, CreateOrderRequest request)
     {
@@ -617,6 +618,84 @@ public class OrderService(
         return Result.Ok(new DispatcherProductRatingReportResponse { Result = result });
     }
 
+    public async Task<Result<ManagerPartnerReliabilityResponse>> GetManagerPartnerReliabilityAsync(
+        Guid userId,
+        UserRole userRole,
+        Guid purchasingCompanyId,
+        Guid partnerCompanyId,
+        string? dateFrom,
+        string? dateTo,
+        string? partnerType)
+    {
+        var access = await EnsureManagerAsync(userId, userRole);
+        if (access.IsFailed)
+        {
+            return Result.Fail(access.Errors);
+        }
+
+        var company = await companyRepository.GetByIdAsync(partnerCompanyId);
+        if (company is null)
+        {
+            return Result.Fail("Компания-партнёр не найдена");
+        }
+
+        if (company.CompanyType == CompanyType.PurchasingCompany)
+        {
+            return Result.Fail("Нельзя анализировать компанию-заказчика как партнёра");
+        }
+
+        var kindResult = ResolvePartnerAnalysisKind(company.CompanyType, partnerType);
+        if (kindResult.IsFailed)
+        {
+            return Result.Fail(kindResult.Errors);
+        }
+
+        var period = ParseReportPeriod(dateFrom, dateTo);
+        if (period.IsFailed)
+        {
+            return Result.Fail(period.Errors);
+        }
+
+        var facts = await orderRepository.GetPartnerReliabilityFactsAsync(
+            purchasingCompanyId,
+            partnerCompanyId,
+            kindResult.Value,
+            period.Value.FromUtc,
+            period.Value.ToUtcExclusive);
+
+        var response = PartnerReliabilityCalculator.Build(
+            company.Id,
+            company.Name,
+            kindResult.Value,
+            dateFrom,
+            dateTo,
+            facts);
+
+        return Result.Ok(response);
+    }
+
+    private static Result<PartnerAnalysisKind> ResolvePartnerAnalysisKind(
+        CompanyType companyType,
+        string? partnerType)
+    {
+        if (!string.IsNullOrWhiteSpace(partnerType))
+        {
+            return partnerType.Trim().ToLowerInvariant() switch
+            {
+                "production" or "производство" => Result.Ok(PartnerAnalysisKind.Production),
+                "transport" or "транспорт" or "logistic" or "логистика" => Result.Ok(PartnerAnalysisKind.Transport),
+                _ => Result.Fail("partnerType: ожидается production или transport")
+            };
+        }
+
+        return companyType switch
+        {
+            CompanyType.LogisticCompany => Result.Ok(PartnerAnalysisKind.Transport),
+            CompanyType.ProductionDispatcher => Result.Ok(PartnerAnalysisKind.Production),
+            _ => Result.Fail("Не удалось определить тип партнёра. Укажите partnerType=production или transport")
+        };
+    }
+
     private static Result<(DateTime? FromUtc, DateTime? ToUtcExclusive)> ParseReportPeriod(
         string? dateFrom,
         string? dateTo)
@@ -657,6 +736,21 @@ public class OrderService(
         if (userRole != UserRole.Dispatcher)
         {
             return Result.Fail(DispatcherOnlyError);
+        }
+
+        if (await userRepository.GetByIdAsync(userId) is null)
+        {
+            return Result.Fail("Пользователь не найден");
+        }
+
+        return Result.Ok();
+    }
+
+    private async Task<Result> EnsureManagerAsync(Guid userId, UserRole userRole)
+    {
+        if (userRole != UserRole.Manager)
+        {
+            return Result.Fail(ManagerOnlyError);
         }
 
         if (await userRepository.GetByIdAsync(userId) is null)

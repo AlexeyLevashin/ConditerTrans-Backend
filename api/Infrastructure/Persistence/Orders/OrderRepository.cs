@@ -1,4 +1,5 @@
 ﻿using Application.Common.Interfaces.Persistence.Repositories;
+using Application.Orders;
 using Common.Enums;
 using DataAccess;
 using Domain.Entities;
@@ -530,6 +531,99 @@ public class OrderRepository(AppDbContext context) : IOrderRepository
             .OrderByDescending(item => item.OrderCount)
             .ThenBy(item => item.ProductName)
             .ToList();
+    }
+
+    public async Task<List<PartnerReliabilityOrderFact>> GetPartnerReliabilityFactsAsync(
+        Guid purchasingCompanyId,
+        Guid partnerCompanyId,
+        PartnerAnalysisKind partnerKind,
+        DateTime? dateFromUtc,
+        DateTime? dateToUtcExclusive)
+    {
+        IQueryable<Order> ordersQuery = context.Orders
+            .AsNoTracking()
+            .Where(o => o.Status == OrderStatus.Delivered)
+            .Where(o =>
+                o.Manager != null &&
+                o.Manager.Employee != null &&
+                o.Manager.Employee.CompanyId == purchasingCompanyId);
+
+        ordersQuery = partnerKind switch
+        {
+            PartnerAnalysisKind.Production => ordersQuery.Where(o =>
+                o.OrderLines.Count > 0 &&
+                o.OrderLines.All(ol => ol.Product != null && ol.Product.CompanyId == partnerCompanyId)),
+            PartnerAnalysisKind.Transport => ordersQuery.Where(o =>
+                o.Cargo != null && o.Cargo.LogisticCompanyId == partnerCompanyId),
+            _ => ordersQuery.Where(_ => false)
+        };
+
+        var orderRows = await ordersQuery
+            .Select(o => new
+            {
+                o.Id,
+                o.RequestedDeliveryDate,
+                CargoUnloading = o.Cargo != null ? o.Cargo.UnloadingDate : (DateTime?)null
+            })
+            .ToListAsync();
+
+        if (orderRows.Count == 0)
+        {
+            return [];
+        }
+
+        var orderIds = orderRows.Select(row => row.Id).ToList();
+
+        var deliveredAtByOrder = await context.OrderChangeHistories
+            .AsNoTracking()
+            .Where(h => orderIds.Contains(h.OrderId) && h.OrderStatus == OrderStatus.Delivered)
+            .GroupBy(h => h.OrderId)
+            .Select(group => new
+            {
+                OrderId = group.Key,
+                DeliveredAt = group.Max(item => item.ChangeTime)
+            })
+            .ToDictionaryAsync(item => item.OrderId, item => item.DeliveredAt);
+
+        var rescheduledOrderIds = await context.OrderChangeHistories
+            .AsNoTracking()
+            .Where(h => orderIds.Contains(h.OrderId) && h.OrderStatus == OrderStatus.Rescheduled)
+            .Select(h => h.OrderId)
+            .Distinct()
+            .ToListAsync();
+
+        var rescheduledSet = rescheduledOrderIds.ToHashSet();
+        var facts = new List<PartnerReliabilityOrderFact>();
+
+        foreach (var row in orderRows)
+        {
+            if (!deliveredAtByOrder.TryGetValue(row.Id, out var deliveredAt))
+            {
+                continue;
+            }
+
+            if (dateFromUtc.HasValue && deliveredAt < dateFromUtc.Value)
+            {
+                continue;
+            }
+
+            if (dateToUtcExclusive.HasValue && deliveredAt >= dateToUtcExclusive.Value)
+            {
+                continue;
+            }
+
+            var actualDelivery = partnerKind == PartnerAnalysisKind.Transport && row.CargoUnloading.HasValue
+                ? (deliveredAt > row.CargoUnloading.Value ? deliveredAt : row.CargoUnloading.Value)
+                : deliveredAt;
+
+            facts.Add(new PartnerReliabilityOrderFact(
+                row.Id,
+                row.RequestedDeliveryDate,
+                actualDelivery,
+                rescheduledSet.Contains(row.Id)));
+        }
+
+        return facts;
     }
 
     private IQueryable<Order> BuildDispatcherOrdersQuery(Guid productionCompanyId)
