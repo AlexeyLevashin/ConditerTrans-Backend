@@ -100,6 +100,10 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.HasMany(o => o.Histories)
             .WithOne(h => h.Order)
             .HasForeignKey(h => h.OrderId)
-            .OnDelete(DeleteBehavior.Cascade); 
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(o => o.CreationDate);
+        builder.HasIndex(o => new { o.Status, o.CreationDate });
+        builder.HasIndex(o => o.OrderNumber);
     }
 }

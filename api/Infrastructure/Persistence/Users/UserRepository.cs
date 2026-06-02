@@ -60,4 +60,11 @@ public class UserRepository(AppDbContext context) : IUserRepository
                 && u.Employee != null
                 && u.Employee.CompanyId == companyId);
     }
+
+    public Task<User?> GetDriverByEmployeeIdAsync(Guid employeeId)
+    {
+        return context.Users
+            .Include(u => u.Employee)
+            .FirstOrDefaultAsync(u => u.EmployeeId == employeeId && u.UserRole == UserRole.Driver);
+    }
 }

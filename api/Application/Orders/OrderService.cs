@@ -1,4 +1,5 @@
 ﻿using Application.Common.Interfaces.Persistence;
+using Common;
 using Application.Common.Interfaces.Persistence.Repositories;
 using Application.Common.Interfaces.Services;
 using Common.Enums;
@@ -218,7 +219,7 @@ public class OrderService(
             request.ProductionAddress.Trim(),
             request.DeliveryAddress.Trim(),
             request.TypePayment.Trim(),
-            request.RequestedDeliveryDate.Date);
+            DateTimeUtc.FromDate(request.RequestedDeliveryDate));
 
         await unitOfWork.SaveChangesAsync();
         return Result.Ok();
@@ -229,7 +230,9 @@ public class OrderService(
         UserRole userRole,
         Guid productionCompanyId,
         string? search,
-        OrderStatus? status)
+        OrderStatus? status,
+        int page,
+        int pageSize)
     {
         var access = await EnsureDispatcherAsync(userId, userRole);
         if (access.IsFailed)
@@ -237,8 +240,27 @@ public class OrderService(
             return Result.Fail(access.Errors);
         }
 
-        var orders = await orderRepository.GetForDispatcherAsync(productionCompanyId, search, status);
-        return Result.Ok(orders.ToDispatcherOrdersDto());
+        var safePage = Math.Max(1, page);
+        var safePageSize = Math.Clamp(pageSize, 1, 100);
+
+        var (orders, totalCount) = await orderRepository.GetForDispatcherPagedAsync(
+            productionCompanyId,
+            search,
+            status,
+            safePage,
+            safePageSize);
+
+        var hasDeadline = await orderRepository.HasDispatcherOrdersRequiringDeadlineConfirmationAsync(
+            productionCompanyId);
+
+        var totalPages = totalCount == 0 ? 0 : (int)Math.Ceiling(totalCount / (double)safePageSize);
+
+        return Result.Ok(orders.ToDispatcherOrdersDto(
+            totalCount,
+            safePage,
+            safePageSize,
+            totalPages,
+            hasDeadline));
     }
 
     public async Task<Result<DispatcherOrderDetailResponse>> GetDispatcherOrderByIdAsync(
@@ -317,7 +339,7 @@ public class OrderService(
             return Result.Fail("Причина срыва сроков обязательна");
         }
 
-        var proposedDate = request.NewDeliveryDate.Date;
+        var proposedDate = DateTimeUtc.FromDate(request.NewDeliveryDate);
         var reason = request.Reason.Trim();
         var comment = $"Предложен перенос на {proposedDate:yyyy-MM-dd}. {reason}";
 
@@ -378,7 +400,7 @@ public class OrderService(
             return Result.Fail("Груз по этому заказу уже создан");
         }
 
-        var shipmentDate = request.ShipmentDate.Date;
+        var shipmentDate = DateTimeUtc.FromDate(request.ShipmentDate);
         var volume = request.LengthM * request.WidthM * request.HeightM;
         var dimensionsText = FormatShipmentDimensions(request.LengthM, request.WidthM, request.HeightM);
         var now = DateTime.UtcNow;
@@ -520,6 +542,114 @@ public class OrderService(
         }
 
         return Result.Ok(updated.ToDispatcherDetailDto());
+    }
+
+    public async Task<Result<DispatcherRejectionReportResponse>> GetDispatcherRejectionReportAsync(
+        Guid userId,
+        UserRole userRole,
+        Guid productionCompanyId,
+        string? dateFrom,
+        string? dateTo)
+    {
+        var access = await EnsureDispatcherAsync(userId, userRole);
+        if (access.IsFailed)
+        {
+            return Result.Fail(access.Errors);
+        }
+
+        var period = ParseReportPeriod(dateFrom, dateTo);
+        if (period.IsFailed)
+        {
+            return Result.Fail(period.Errors);
+        }
+
+        var stats = await orderRepository.GetRejectionStatisticsAsync(
+            productionCompanyId,
+            period.Value.FromUtc,
+            period.Value.ToUtcExclusive);
+
+        var total = stats.Sum(item => item.OrderCount);
+        var result = stats.Select(item => new RejectionReportItemResponse
+        {
+            Reason = item.Reason,
+            OrderCount = item.OrderCount,
+            SharePercent = total == 0
+                ? 0
+                : Math.Round(item.OrderCount * 100m / total, 1)
+        }).ToList();
+
+        return Result.Ok(new DispatcherRejectionReportResponse { Result = result });
+    }
+
+    public async Task<Result<DispatcherProductRatingReportResponse>> GetDispatcherProductRatingReportAsync(
+        Guid userId,
+        UserRole userRole,
+        Guid productionCompanyId,
+        string? dateFrom,
+        string? dateTo)
+    {
+        var access = await EnsureDispatcherAsync(userId, userRole);
+        if (access.IsFailed)
+        {
+            return Result.Fail(access.Errors);
+        }
+
+        var period = ParseReportPeriod(dateFrom, dateTo);
+        if (period.IsFailed)
+        {
+            return Result.Fail(period.Errors);
+        }
+
+        var stats = await orderRepository.GetProductRatingAsync(
+            productionCompanyId,
+            period.Value.FromUtc,
+            period.Value.ToUtcExclusive);
+
+        var result = stats
+            .Select((item, index) => new ProductRatingItemResponse
+            {
+                Rank = index + 1,
+                Name = item.ProductName,
+                OrderCount = item.OrderCount
+            })
+            .ToList();
+
+        return Result.Ok(new DispatcherProductRatingReportResponse { Result = result });
+    }
+
+    private static Result<(DateTime? FromUtc, DateTime? ToUtcExclusive)> ParseReportPeriod(
+        string? dateFrom,
+        string? dateTo)
+    {
+        DateTime? fromUtc = null;
+        DateTime? toUtcExclusive = null;
+
+        if (!string.IsNullOrWhiteSpace(dateFrom))
+        {
+            if (!DateTime.TryParse(dateFrom, out var parsedFrom))
+            {
+                return Result.Fail("Некорректная дата начала периода (ожидается YYYY-MM-DD)");
+            }
+
+            fromUtc = DateTimeUtc.FromDate(parsedFrom);
+        }
+
+        if (!string.IsNullOrWhiteSpace(dateTo))
+        {
+            if (!DateTime.TryParse(dateTo, out var parsedTo))
+            {
+                return Result.Fail("Некорректная дата окончания периода (ожидается YYYY-MM-DD)");
+            }
+
+            toUtcExclusive = DateTimeUtc.FromDate(parsedTo).AddDays(1);
+        }
+
+        if (fromUtc.HasValue && toUtcExclusive.HasValue && fromUtc >= toUtcExclusive)
+        {
+            return Result.Fail("Дата начала не может быть позже даты окончания");
+        }
+
+        return Result.Ok((fromUtc, toUtcExclusive));
     }
 
     private async Task<Result> EnsureDispatcherAsync(Guid userId, UserRole userRole)

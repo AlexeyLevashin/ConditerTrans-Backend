@@ -12,6 +12,10 @@ public interface ICargoRepository
     Task<List<Cargo>> GetActiveByDriverIdAsync(Guid driverId);
     Task<List<Cargo>> GetAllForCoordinatorAsync(Guid companyId);
     Task<bool> HasActiveCargoByDriverIdAsync(Guid driverId);
-    Task<bool> AssignDriverAsync(Guid cargoId, Guid driverId, Guid companyId);
+    Task<bool> AssignDriverAsync(
+        Guid cargoId,
+        Guid driverId,
+        Guid transportVehicleId,
+        Guid companyId);
     Task UpdateStatusAsync(Guid cargoId, CargoStatus status);
 }

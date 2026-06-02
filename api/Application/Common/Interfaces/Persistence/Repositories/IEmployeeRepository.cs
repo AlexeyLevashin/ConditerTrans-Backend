@@ -6,4 +6,5 @@ public interface IEmployeeRepository
 {
     Task AddAsync(Employee employee);
     Task<Employee?> GetByPhoneAsync(string phone);
+    Task<Employee?> GetByIdAsync(Guid employeeId);
 }

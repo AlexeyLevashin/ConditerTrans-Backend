@@ -43,6 +43,13 @@ public class CargoConfiguration : IEntityTypeConfiguration<Cargo>
             .HasForeignKey(c => c.DriverId)
             .OnDelete(DeleteBehavior.SetNull);
 
+        builder.HasOne(c => c.TransportVehicle)
+            .WithMany()
+            .HasForeignKey(c => c.TransportVehicleId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(c => c.TransportVehicleId);
+
         builder.HasMany(c => c.Histories)
             .WithOne(h => h.Cargo)
             .HasForeignKey(h => h.CargoId)

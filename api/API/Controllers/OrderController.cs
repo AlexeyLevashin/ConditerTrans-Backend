@@ -9,7 +9,9 @@ using Microsoft.AspNetCore.Mvc;
 namespace API.Controllers;
 
 [Route("api/orders")]
-public class OrderController(IOrderService orderService) : BaseController
+public class OrderController(
+    IOrderService orderService,
+    IOrderDeadlineConfirmationService deadlineConfirmationService) : BaseController
 {
     [HttpGet("current")]
     public async Task<IActionResult> GetCurrent()
@@ -31,10 +33,61 @@ public class OrderController(IOrderService orderService) : BaseController
         return Ok(result.Value);
     }
 
-    [HttpGet("dispatcher")]
-    public async Task<IActionResult> GetDispatcherOrders([FromQuery] string? search, [FromQuery] OrderStatus? status)
+    [HttpGet("dispatcher/reports/refusals")]
+    public async Task<IActionResult> GetDispatcherRejectionReport(
+        [FromQuery] string? dateFrom,
+        [FromQuery] string? dateTo)
     {
-        var result = await orderService.GetDispatcherOrdersAsync(UserId, UserRole, CompanyId, search, status);
+        var result = await orderService.GetDispatcherRejectionReportAsync(
+            UserId,
+            UserRole,
+            CompanyId,
+            dateFrom,
+            dateTo);
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        return DispatcherForbidOrBadRequest(result);
+    }
+
+    [HttpGet("dispatcher/reports/product-rating")]
+    public async Task<IActionResult> GetDispatcherProductRatingReport(
+        [FromQuery] string? dateFrom,
+        [FromQuery] string? dateTo)
+    {
+        var result = await orderService.GetDispatcherProductRatingReportAsync(
+            UserId,
+            UserRole,
+            CompanyId,
+            dateFrom,
+            dateTo);
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        return DispatcherForbidOrBadRequest(result);
+    }
+
+    [HttpGet("dispatcher")]
+    public async Task<IActionResult> GetDispatcherOrders(
+        [FromQuery] string? search,
+        [FromQuery] OrderStatus? status,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        var result = await orderService.GetDispatcherOrdersAsync(
+            UserId,
+            UserRole,
+            CompanyId,
+            search,
+            status,
+            page,
+            pageSize);
 
         if (result.IsFailed)
         {
@@ -42,6 +95,19 @@ public class OrderController(IOrderService orderService) : BaseController
         }
 
         return Ok(result.Value);
+    }
+
+    /// <summary>Ручной запуск проверки дедлайнов (то же, что Hangfire job). Для теста.</summary>
+    [HttpPost("dispatcher/run-deadline-check")]
+    public async Task<IActionResult> RunDeadlineCheck()
+    {
+        if (UserRole != UserRole.Dispatcher)
+        {
+            return Forbid();
+        }
+
+        var result = await deadlineConfirmationService.ProcessDueConfirmationsAsync(HttpContext.RequestAborted);
+        return Ok(result);
     }
 
     [HttpGet("dispatcher/{id:guid}")]

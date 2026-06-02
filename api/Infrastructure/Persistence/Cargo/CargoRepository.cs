@@ -21,6 +21,9 @@ public class CargoRepository(AppDbContext context) : ICargoRepository
                     .ThenInclude(ol => ol.Product)
             .Include(c => c.Driver)
                 .ThenInclude(d => d!.Employee)
+            .Include(c => c.TransportVehicle)
+                .ThenInclude(v => v!.Model)
+                    .ThenInclude(m => m.Brand)
             .FirstOrDefaultAsync(c => c.Id == cargoId);
     }
 
@@ -34,6 +37,9 @@ public class CargoRepository(AppDbContext context) : ICargoRepository
                     .ThenInclude(ol => ol.Product)
             .Include(c => c.Driver)
                 .ThenInclude(d => d!.Employee)
+            .Include(c => c.TransportVehicle)
+                .ThenInclude(v => v!.Model)
+                    .ThenInclude(m => m.Brand)
             .OrderByDescending(c => c.LoadingDate)
             .ToListAsync();
     }
@@ -51,6 +57,9 @@ public class CargoRepository(AppDbContext context) : ICargoRepository
                     .ThenInclude(ol => ol.Product)
             .Include(c => c.Driver)
                 .ThenInclude(d => d!.Employee)
+            .Include(c => c.TransportVehicle)
+                .ThenInclude(v => v!.Model)
+                    .ThenInclude(m => m.Brand)
             .OrderByDescending(c => c.LoadingDate)
             .ToListAsync();
     }
@@ -66,6 +75,9 @@ public class CargoRepository(AppDbContext context) : ICargoRepository
             .Include(c => c.Order)
                 .ThenInclude(o => o!.OrderLines)
                     .ThenInclude(ol => ol.Product)
+            .Include(c => c.TransportVehicle)
+                .ThenInclude(v => v!.Model)
+                    .ThenInclude(m => m.Brand)
             .OrderByDescending(c => c.LoadingDate)
             .ToListAsync();
     }
@@ -82,6 +94,9 @@ public class CargoRepository(AppDbContext context) : ICargoRepository
                     .ThenInclude(ol => ol.Product)
             .Include(c => c.Driver)
                 .ThenInclude(d => d!.Employee)
+            .Include(c => c.TransportVehicle)
+                .ThenInclude(v => v!.Model)
+                    .ThenInclude(m => m.Brand)
             .OrderByDescending(c => c.LoadingDate)
             .ToListAsync();
     }
@@ -94,7 +109,11 @@ public class CargoRepository(AppDbContext context) : ICargoRepository
                 || c.Status == CargoStatus.PickedUpFromProduction));
     }
 
-    public async Task<bool> AssignDriverAsync(Guid cargoId, Guid driverId, Guid companyId)
+    public async Task<bool> AssignDriverAsync(
+        Guid cargoId,
+        Guid driverId,
+        Guid transportVehicleId,
+        Guid companyId)
     {
         var cargo = await context.Cargos.FirstOrDefaultAsync(c =>
             c.Id == cargoId && c.Status == CargoStatus.NotAssignedToLogisticCompany);
@@ -106,6 +125,7 @@ public class CargoRepository(AppDbContext context) : ICargoRepository
 
         cargo.LogisticCompanyId = companyId;
         cargo.DriverId = driverId;
+        cargo.TransportVehicleId = transportVehicleId;
         cargo.Status = CargoStatus.AwaitingTransportation;
 
         await context.CargoChangeHistories.AddAsync(new CargoChangeHistory

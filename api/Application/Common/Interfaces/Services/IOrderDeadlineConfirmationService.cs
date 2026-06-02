@@ -1,6 +1,9 @@
 namespace Application.Common.Interfaces.Services;
 
+using Contracts.Orders.Responses;
+
 public interface IOrderDeadlineConfirmationService
 {
-    Task ProcessDueConfirmationsAsync(CancellationToken cancellationToken = default);
+    Task<DeadlineConfirmationRunResponse> ProcessDueConfirmationsAsync(
+        CancellationToken cancellationToken = default);
 }

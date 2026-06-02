@@ -26,7 +26,9 @@ public interface IOrderService
         UserRole userRole,
         Guid productionCompanyId,
         string? search,
-        OrderStatus? status);
+        OrderStatus? status,
+        int page,
+        int pageSize);
 
     Task<Result<DispatcherOrderDetailResponse>> GetDispatcherOrderByIdAsync(
         Guid userId,
@@ -67,4 +69,18 @@ public interface IOrderService
         Guid productionCompanyId,
         Guid orderId,
         HandoverDispatcherOrderRequest request);
+
+    Task<Result<DispatcherRejectionReportResponse>> GetDispatcherRejectionReportAsync(
+        Guid userId,
+        UserRole userRole,
+        Guid productionCompanyId,
+        string? dateFrom,
+        string? dateTo);
+
+    Task<Result<DispatcherProductRatingReportResponse>> GetDispatcherProductRatingReportAsync(
+        Guid userId,
+        UserRole userRole,
+        Guid productionCompanyId,
+        string? dateFrom,
+        string? dateTo);
 }

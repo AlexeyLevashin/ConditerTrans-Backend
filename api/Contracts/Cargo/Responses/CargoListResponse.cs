@@ -22,6 +22,9 @@ public class CargoItemResponse
     public CargoStatus Status { get; set; }
     public Guid? DriverId { get; set; }
     public string? DriverName { get; set; }
+    public Guid? TransportVehicleId { get; set; }
+    public string? VehicleDisplayName { get; set; }
+    public string? LicensePlate { get; set; }
     public decimal? OrderAmount { get; set; }
     public string? PaymentType { get; set; }
     public List<CargoOrderLineResponse> OrderLines { get; set; } = [];

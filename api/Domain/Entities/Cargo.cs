@@ -37,8 +37,12 @@ public class Cargo
     [Column("driver_id")]
     public Guid? DriverId { get; set; }
 
+    [Column("transport_vehicle_id")]
+    public Guid? TransportVehicleId { get; set; }
+
     public virtual Company? LogisticCompany { get; set; }
     public virtual User? Driver { get; set; }
+    public virtual TransportVehicle? TransportVehicle { get; set; }
     public virtual Order? Order { get; set; }
     public List<CargoChangeHistory> Histories { get; set; } = [];
 }

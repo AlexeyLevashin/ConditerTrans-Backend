@@ -36,7 +36,14 @@ public interface IOrderRepository
     Task<Order?> GetByIdWithLinesAsync(Guid orderId);
     Task LinkCargoAsync(Guid orderId, Guid cargoId);
     Task MarkAsShippedAsync(Guid orderId);
-    Task<List<Order>> GetForDispatcherAsync(Guid productionCompanyId, string? search, OrderStatus? status);
+    Task<(List<Order> Items, int TotalCount)> GetForDispatcherPagedAsync(
+        Guid productionCompanyId,
+        string? search,
+        OrderStatus? status,
+        int page,
+        int pageSize);
+
+    Task<bool> HasDispatcherOrdersRequiringDeadlineConfirmationAsync(Guid productionCompanyId);
     Task<Order?> GetByIdForDispatcherAsync(Guid orderId, Guid productionCompanyId);
     Task<bool> BelongsToProductionCompanyAsync(Guid orderId, Guid productionCompanyId);
     Task<bool> MarkReadyForShipmentAsync(
@@ -59,4 +66,14 @@ public interface IOrderRepository
         DateTime? proposedDeliveryDate = null,
         string? rescheduleReason = null,
         bool clearRescheduleProposal = false);
+
+    Task<List<(string Reason, int OrderCount)>> GetRejectionStatisticsAsync(
+        Guid productionCompanyId,
+        DateTime? dateFromUtc,
+        DateTime? dateToUtcExclusive);
+
+    Task<List<(string ProductName, int OrderCount)>> GetProductRatingAsync(
+        Guid productionCompanyId,
+        DateTime? dateFromUtc,
+        DateTime? dateToUtcExclusive);
 }

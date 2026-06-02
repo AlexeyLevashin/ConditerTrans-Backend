@@ -25,5 +25,7 @@ public class OrderChangeHistoryConfiguration : IEntityTypeConfiguration<OrderCha
         builder.Property(h => h.Comment)
             .HasMaxLength(2000)
             .IsRequired(false);
+
+        builder.HasIndex(h => new { h.OrderStatus, h.ChangeTime });
     }
 }

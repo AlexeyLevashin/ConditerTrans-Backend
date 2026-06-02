@@ -13,6 +13,7 @@ public class CargoService(
     ICargoRepository cargoRepository,
     IOrderRepository orderRepository,
     IUserRepository userRepository,
+    ITransportVehicleRepository transportVehicleRepository,
     IUnitOfWork unitOfWork) : ICargoService
 {
     private const string CoordinatorOnlyError = "Доступно только логисту-координатору";
@@ -116,6 +117,11 @@ public class CargoService(
             return Result.Fail("Не выбран водитель");
         }
 
+        if (request.TransportVehicleId == Guid.Empty)
+        {
+            return Result.Fail("Не выбрано транспортное средство");
+        }
+
         if (await userRepository.GetByIdAsync(userId) is null)
         {
             return Result.Fail("Пользователь не найден");
@@ -132,13 +138,35 @@ public class CargoService(
             return Result.Fail("Водитель уже занят на другом рейсе");
         }
 
+        var vehicle = await transportVehicleRepository.GetByIdForCompanyAsync(
+            request.TransportVehicleId,
+            companyId);
+        if (vehicle is null)
+        {
+            return Result.Fail("Транспортное средство не найдено");
+        }
+
+        if (vehicle.EmployeeId != driver.EmployeeId)
+        {
+            return Result.Fail("ТС не закреплено за выбранным водителем");
+        }
+
+        if (await transportVehicleRepository.IsBusyOnActiveTripAsync(vehicle.Id))
+        {
+            return Result.Fail("Транспортное средство уже занято на рейсе");
+        }
+
         var cargo = await cargoRepository.GetByIdWithOrderAsync(cargoId);
         if (cargo is null || cargo.Status != CargoStatus.NotAssignedToLogisticCompany)
         {
             return Result.Fail("Груз не найден или уже обработан");
         }
 
-        var assigned = await cargoRepository.AssignDriverAsync(cargoId, driver.Id, companyId);
+        var assigned = await cargoRepository.AssignDriverAsync(
+            cargoId,
+            driver.Id,
+            vehicle.Id,
+            companyId);
         if (!assigned)
         {
             return Result.Fail("Не удалось назначить водителя");
