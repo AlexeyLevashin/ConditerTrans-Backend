@@ -21,6 +21,8 @@ public interface IOrderService
         RejectManagerRescheduleRequest request);
     Task<Result> SubmitAsync(Guid managerId, Guid orderId, SubmitOrderRequest request);
 
+    Task<Result<GetCurrentOrderResponse>> RepeatOrderAsync(Guid managerId, Guid sourceOrderId);
+
     Task<Result<GetDispatcherOrdersResponse>> GetDispatcherOrdersAsync(
         Guid userId,
         UserRole userRole,
