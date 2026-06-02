@@ -10,6 +10,10 @@ public interface IOrderRepository
     Task<Order?> GetDraftByManagerIdAsync(Guid managerId);
     Task<bool> HasBlockingManagerOrderAsync(Guid managerId);
     Task CreateDraftAsync(Order order, Guid productId, int quantityOfUnits);
+
+    Task CreateDraftWithLinesAsync(Order order, IReadOnlyList<(Guid ProductId, int QuantityOfUnits)> lines);
+
+    Task DeleteDraftsByManagerIdAsync(Guid managerId);
     Task<bool> UpsertOrderLineAsync(Guid orderId, Guid productId, int quantityOfUnits);
     Task<List<Order>> GetAllByManagerIdAsync(Guid managerId);
     Task<Order?> GetByIdAndManagerIdAsync(Guid orderId, Guid managerId);

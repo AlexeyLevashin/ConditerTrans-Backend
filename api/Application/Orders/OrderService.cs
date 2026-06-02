@@ -67,6 +67,61 @@ public class OrderService(
         return Result.Ok();
     }
 
+    public async Task<Result<GetCurrentOrderResponse>> RepeatOrderAsync(Guid managerId, Guid sourceOrderId)
+    {
+        var manager = await userRepository.GetByIdAsync(managerId);
+        if (manager is null)
+        {
+            return Result.Fail("Пользователь не найден");
+        }
+
+        if (manager.UserRole != UserRole.Manager)
+        {
+            return Result.Fail(ManagerOnlyError);
+        }
+
+        var source = await orderRepository.GetByIdAndManagerIdAsync(sourceOrderId, managerId);
+        if (source is null || source.Status == OrderStatus.Draft)
+        {
+            return Result.Fail("Заказ не найден");
+        }
+
+        var lines = source.OrderLines
+            .Where(line => line.ProductId != Guid.Empty)
+            .Select(line => (line.ProductId, line.QuantityOfUnits))
+            .ToList();
+
+        if (lines.Count == 0)
+        {
+            return Result.Fail("В заказе нет позиций для повтора");
+        }
+
+        foreach (var (productId, _) in lines)
+        {
+            if (!await productRepository.ExistsByIdAsync(productId))
+            {
+                return Result.Fail("Один из товаров больше недоступен");
+            }
+        }
+
+        await orderRepository.DeleteDraftsByManagerIdAsync(managerId);
+
+        var order = new Order
+        {
+            ManagerId = managerId,
+            Status = OrderStatus.Draft,
+            CreationDate = DateTime.UtcNow,
+            DeliveryAddress = source.DeliveryAddress,
+            ProductionAddress = source.ProductionAddress,
+            PaymentType = source.PaymentType
+        };
+
+        await orderRepository.CreateDraftWithLinesAsync(order, lines);
+        await unitOfWork.SaveChangesAsync();
+
+        return await GetCurrentDraftAsync(managerId);
+    }
+
     public async Task<Result<GetCurrentOrderResponse>> GetCurrentDraftAsync(Guid managerId)
     {
         var order = await orderRepository.GetDraftByManagerIdAsync(managerId);

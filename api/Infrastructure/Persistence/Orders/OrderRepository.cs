@@ -53,6 +53,54 @@ public class OrderRepository(AppDbContext context) : IOrderRepository
         await context.Orders.AddAsync(order);
     }
 
+    public async Task CreateDraftWithLinesAsync(
+        Order order,
+        IReadOnlyList<(Guid ProductId, int QuantityOfUnits)> lines)
+    {
+        order.Histories.Add(new OrderChangeHistory
+        {
+            OrderStatus = OrderStatus.Draft,
+            ChangeTime = DateTime.UtcNow,
+            Comment = "Создан повтором заказа"
+        });
+
+        foreach (var (productId, quantityOfUnits) in lines)
+        {
+            order.OrderLines.Add(new OrderLine
+            {
+                ProductId = productId,
+                QuantityOfUnits = quantityOfUnits
+            });
+        }
+
+        await context.Orders.AddAsync(order);
+    }
+
+    public async Task DeleteDraftsByManagerIdAsync(Guid managerId)
+    {
+        var draftIds = await context.Orders
+            .Where(o => o.ManagerId == managerId && o.Status == OrderStatus.Draft)
+            .Select(o => o.Id)
+            .ToListAsync();
+
+        if (draftIds.Count == 0)
+        {
+            return;
+        }
+
+        await context.OrderChangeHistories
+            .Where(h => draftIds.Contains(h.OrderId))
+            .ExecuteDeleteAsync();
+
+        await context.OrderLines
+            .Where(ol => draftIds.Contains(ol.OrderId))
+            .ExecuteDeleteAsync();
+
+        await context.Orders
+            .Where(o => draftIds.Contains(o.Id))
+            .ExecuteDeleteAsync();
+    }
+
     public async Task<bool> UpsertOrderLineAsync(Guid orderId, Guid productId, int quantityOfUnits)
     {
         var isDraft = await context.Orders.AnyAsync(o =>

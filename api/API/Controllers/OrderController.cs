@@ -210,6 +210,29 @@ public class OrderController(
         return ManagerDetailResult(result);
     }
 
+    /// <summary>Создать новый черновик с теми же позициями, что в выбранном заказе из истории.</summary>
+    [HttpPost("{id:guid}/repeat")]
+    public async Task<IActionResult> RepeatOrder(Guid id)
+    {
+        var result = await orderService.RepeatOrderAsync(UserId, id);
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        if (result.Errors.Any(error => error.Message == ManagerOnlyError))
+        {
+            return Forbid();
+        }
+
+        return result.Errors.FirstOrDefault()?.Message == "Заказ не найден"
+            ? NotFound(result.Errors)
+            : BadRequest(result.Errors);
+    }
+
+    private const string ManagerOnlyError = "Доступно только менеджеру по закупкам";
+
     [HttpPost("dispatcher/{id:guid}/confirm")]
     public async Task<IActionResult> ConfirmDispatcherOrder(Guid id)
     {
