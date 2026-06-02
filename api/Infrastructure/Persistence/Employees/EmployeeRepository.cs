@@ -16,4 +16,9 @@ public class EmployeeRepository(AppDbContext context) : IEmployeeRepository
     {
         return await context.Employees.FirstOrDefaultAsync(u => u.Phone == phone);
     }
+
+    public Task<Employee?> GetByIdAsync(Guid employeeId)
+    {
+        return context.Employees.FirstOrDefaultAsync(e => e.Id == employeeId);
+    }
 }

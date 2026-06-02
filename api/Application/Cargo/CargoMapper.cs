@@ -48,10 +48,23 @@ internal static class CargoMapper
             Status = cargo.Status,
             DriverId = cargo.DriverId,
             DriverName = FormatDriverName(cargo.Driver),
+            TransportVehicleId = cargo.TransportVehicleId,
+            VehicleDisplayName = FormatVehicleName(cargo.TransportVehicle),
+            LicensePlate = cargo.TransportVehicle?.RegistrationNumber,
             OrderAmount = lines.Count > 0 ? lines.Sum(line => line.QuantityOfUnits * line.ProductPrice) : null,
             PaymentType = order?.PaymentType,
             OrderLines = lines
         };
+    }
+
+    private static string? FormatVehicleName(TransportVehicle? vehicle)
+    {
+        if (vehicle?.Model?.Brand is null)
+        {
+            return null;
+        }
+
+        return $"{vehicle.Model.Brand.Name} {vehicle.Model.Name}";
     }
 
     private static string? FormatDriverName(User? driver)

@@ -16,6 +16,7 @@ using Infrastructure.Persistence.Invitation;
 using Infrastructure.Persistence.Orders;
 using Infrastructure.Persistence.Products;
 using Infrastructure.Orders;
+using Infrastructure.Persistence.TransportVehicles;
 using Infrastructure.Persistence.Users;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
@@ -41,6 +42,7 @@ public static class DependencyInjection
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IOrderRepository, OrderRepository>();
         services.AddScoped<ICargoRepository, CargoRepository>();
+        services.AddScoped<ITransportVehicleRepository, TransportVehicleRepository>();
         services.AddScoped<IOrderDeadlineConfirmationService, OrderDeadlineConfirmationService>();
 
         services.Configure<FileServiceOptions>(configuration.GetSection(FileServiceOptions.SectionName));

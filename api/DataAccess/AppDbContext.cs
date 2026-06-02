@@ -17,6 +17,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<OrderChangeHistory> OrderChangeHistories => Set<OrderChangeHistory>();
     public DbSet<Cargo> Cargos => Set<Cargo>();
     public DbSet<CargoChangeHistory> CargoChangeHistories => Set<CargoChangeHistory>();
+    public DbSet<VehicleBrand> VehicleBrands => Set<VehicleBrand>();
+    public DbSet<VehicleModel> VehicleModels => Set<VehicleModel>();
+    public DbSet<TransportVehicle> TransportVehicles => Set<TransportVehicle>();
         
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

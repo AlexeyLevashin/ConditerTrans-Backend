@@ -10,4 +10,5 @@ public interface IUserRepository
     Task<List<User>> GetByCompanyIdAsync(Guid companyId);
     Task<List<User>> GetDriversByCompanyIdAsync(Guid companyId);
     Task<User?> GetDriverByIdAndCompanyIdAsync(Guid driverId, Guid companyId);
+    Task<User?> GetDriverByEmployeeIdAsync(Guid employeeId);
 }

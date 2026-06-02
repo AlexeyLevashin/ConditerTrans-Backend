@@ -142,9 +142,20 @@ public static class OrderMapper
         };
     }
 
-    public static GetDispatcherOrdersResponse ToDispatcherOrdersDto(this List<Order> orders) => new()
+    public static GetDispatcherOrdersResponse ToDispatcherOrdersDto(
+        this List<Order> orders,
+        int totalCount,
+        int page,
+        int pageSize,
+        int totalPages,
+        bool hasOrdersRequiringDeadlineConfirmation) => new()
     {
-        Result = orders.Select(ToDispatcherListItemDto).ToList()
+        Result = orders.Select(ToDispatcherListItemDto).ToList(),
+        TotalCount = totalCount,
+        Page = page,
+        PageSize = pageSize,
+        TotalPages = totalPages,
+        HasOrdersRequiringDeadlineConfirmation = hasOrdersRequiringDeadlineConfirmation
     };
 
     public static DispatcherOrderDetailResponse ToDispatcherDetailDto(this Order order)

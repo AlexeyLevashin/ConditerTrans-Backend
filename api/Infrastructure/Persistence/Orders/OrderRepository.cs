@@ -198,7 +198,40 @@ public class OrderRepository(AppDbContext context) : IOrderRepository
         await UpdateStatusAsync(orderId, OrderStatus.Shipped, null, null, null);
     }
 
-    public Task<List<Order>> GetForDispatcherAsync(Guid productionCompanyId, string? search, OrderStatus? status)
+    public async Task<(List<Order> Items, int TotalCount)> GetForDispatcherPagedAsync(
+        Guid productionCompanyId,
+        string? search,
+        OrderStatus? status,
+        int page,
+        int pageSize)
+    {
+        var query = FilterDispatcherOrdersQuery(productionCompanyId, search, status);
+
+        var totalCount = await query.CountAsync();
+
+        var items = await query
+            .OrderByDescending(o => o.CreationDate)
+            .ThenByDescending(o => o.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (items, totalCount);
+    }
+
+    public Task<bool> HasDispatcherOrdersRequiringDeadlineConfirmationAsync(Guid productionCompanyId)
+    {
+        return BuildDispatcherOrdersQuery(productionCompanyId)
+            .AnyAsync(o =>
+                o.Status == OrderStatus.Confirmed &&
+                o.CargoId == null &&
+                o.DeadlineConfirmationPhase != DeadlineConfirmationPhase.None);
+    }
+
+    private IQueryable<Order> FilterDispatcherOrdersQuery(
+        Guid productionCompanyId,
+        string? search,
+        OrderStatus? status)
     {
         var query = BuildDispatcherOrdersQuery(productionCompanyId)
             .Where(o => o.Status != OrderStatus.Draft);
@@ -220,9 +253,7 @@ public class OrderRepository(AppDbContext context) : IOrderRepository
                  o.Manager.Employee.Company.Name.Contains(term)));
         }
 
-        return query
-            .OrderByDescending(o => o.CreationDate)
-            .ToListAsync();
+        return query;
     }
 
     public Task<Order?> GetByIdForDispatcherAsync(Guid orderId, Guid productionCompanyId)
@@ -414,6 +445,91 @@ public class OrderRepository(AppDbContext context) : IOrderRepository
             .Where(o => o.Id == orderId)
             .ExecuteUpdateAsync(setters => setters
                 .SetProperty(o => o.RequestedDeliveryDate, requestedDeliveryDate.Date));
+    }
+
+    public async Task<List<(string Reason, int OrderCount)>> GetRejectionStatisticsAsync(
+        Guid productionCompanyId,
+        DateTime? dateFromUtc,
+        DateTime? dateToUtcExclusive)
+    {
+        var companyOrderIds = context.Orders
+            .AsNoTracking()
+            .Where(o => o.Status == OrderStatus.Rejected)
+            .Where(o =>
+                o.OrderLines.Count > 0 &&
+                o.OrderLines.All(ol => ol.Product != null && ol.Product.CompanyId == productionCompanyId))
+            .Select(o => o.Id);
+
+        var historiesQuery = context.OrderChangeHistories
+            .AsNoTracking()
+            .Where(h => h.OrderStatus == OrderStatus.Rejected)
+            .Where(h => companyOrderIds.Contains(h.OrderId));
+
+        if (dateFromUtc.HasValue)
+        {
+            historiesQuery = historiesQuery.Where(h => h.ChangeTime >= dateFromUtc.Value);
+        }
+
+        if (dateToUtcExclusive.HasValue)
+        {
+            historiesQuery = historiesQuery.Where(h => h.ChangeTime < dateToUtcExclusive.Value);
+        }
+
+        var histories = await historiesQuery
+            .Select(h => new { h.OrderId, h.Comment, h.ChangeTime })
+            .ToListAsync();
+
+        var reasons = histories
+            .GroupBy(h => h.OrderId)
+            .Select(group => group.OrderByDescending(item => item.ChangeTime).First())
+            .Select(item =>
+                string.IsNullOrWhiteSpace(item.Comment) ? "Причина не указана" : item.Comment.Trim())
+            .ToList();
+
+        return reasons
+            .GroupBy(reason => reason)
+            .Select(group => (Reason: group.Key, OrderCount: group.Count()))
+            .OrderByDescending(item => item.OrderCount)
+            .ThenBy(item => item.Reason)
+            .ToList();
+    }
+
+    public async Task<List<(string ProductName, int OrderCount)>> GetProductRatingAsync(
+        Guid productionCompanyId,
+        DateTime? dateFromUtc,
+        DateTime? dateToUtcExclusive)
+    {
+        var ordersQuery = context.Orders
+            .AsNoTracking()
+            .Where(o => o.Status == OrderStatus.Confirmed)
+            .Where(o =>
+                o.OrderLines.Count > 0 &&
+                o.OrderLines.All(ol => ol.Product != null && ol.Product.CompanyId == productionCompanyId));
+
+        if (dateFromUtc.HasValue)
+        {
+            ordersQuery = ordersQuery.Where(o => o.CreationDate >= dateFromUtc.Value);
+        }
+
+        if (dateToUtcExclusive.HasValue)
+        {
+            ordersQuery = ordersQuery.Where(o => o.CreationDate < dateToUtcExclusive.Value);
+        }
+
+        var lines = await ordersQuery
+            .SelectMany(o => o.OrderLines)
+            .Where(ol => ol.Product != null)
+            .Select(ol => new { ol.OrderId, ProductName = ol.Product!.Name })
+            .ToListAsync();
+
+        return lines
+            .GroupBy(line => line.ProductName)
+            .Select(group => (
+                ProductName: group.Key,
+                OrderCount: group.Select(item => item.OrderId).Distinct().Count()))
+            .OrderByDescending(item => item.OrderCount)
+            .ThenBy(item => item.ProductName)
+            .ToList();
     }
 
     private IQueryable<Order> BuildDispatcherOrdersQuery(Guid productionCompanyId)
