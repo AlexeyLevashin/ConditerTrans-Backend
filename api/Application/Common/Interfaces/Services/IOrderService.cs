@@ -83,4 +83,13 @@ public interface IOrderService
         Guid productionCompanyId,
         string? dateFrom,
         string? dateTo);
+
+    Task<Result<ManagerPartnerReliabilityResponse>> GetManagerPartnerReliabilityAsync(
+        Guid userId,
+        UserRole userRole,
+        Guid purchasingCompanyId,
+        Guid partnerCompanyId,
+        string? dateFrom,
+        string? dateTo,
+        string? partnerType);
 }

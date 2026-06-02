@@ -7,4 +7,10 @@ public interface IProductService
 {
     public Task<Result<GetProductResponse>> GetProductByIdAsync(Guid id);
     public Task<Result<List<ProductListItemResponse>>> GetAllProductsAsync(List<Guid>? companyIds, List<Guid>? categoryIds);
+
+    Task<Result<GetProductsPagedResponse>> GetProductsPagedAsync(
+        List<Guid>? companyIds,
+        List<Guid>? categoryIds,
+        int page,
+        int pageSize);
 }
