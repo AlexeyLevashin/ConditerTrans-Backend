@@ -1,4 +1,5 @@
 ﻿using Application.Common.Interfaces.Persistence.Repositories;
+using Common.Enums;
 using DataAccess;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -45,5 +46,14 @@ public class CompanyRepository(AppDbContext context) : ICompanyRepository
     public async Task<List<Company>> GetAllAsync()
     {
         return await context.Companies.AsNoTracking().ToListAsync();
+    }
+
+    public Task<List<Company>> GetByCompanyTypeAsync(CompanyType companyType)
+    {
+        return context.Companies
+            .AsNoTracking()
+            .Where(c => c.CompanyType == companyType)
+            .OrderBy(c => c.Name)
+            .ToListAsync();
     }
 }
