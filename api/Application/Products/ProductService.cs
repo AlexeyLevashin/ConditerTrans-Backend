@@ -26,33 +26,6 @@ public class ProductService(
         return Result.Ok(response);
     }
 
-    public async Task<Result<List<ProductListItemResponse>>> GetAllProductsAsync(List<Guid>? companyIds, List<Guid>? categoryIds)
-    {
-        if (companyIds != null && companyIds.Any())
-        {
-            bool allCompaniesExist = await companyRepository.CheckAllExistAsync(companyIds);
-            if (!allCompaniesExist)
-            {
-                return Result.Fail("Одна или несколько указанных компаний не найдены.");
-            }
-        }
-
-        if (categoryIds != null && categoryIds.Any())
-        {
-            bool allCategoriesExist = await categoryRepository.CheckAllExistAsync(categoryIds);
-            if (!allCategoriesExist)
-            {
-                return Result.Fail("Одна или несколько указанных категорий не найдены.");
-            }
-        }
-        
-        var products = await productRepository.GetAllProductsAsync(companyIds, categoryIds);
-        
-        var response = products.DbToListItemsDto();
-        await ProductFileUrlEnricher.EnrichAsync(response, fileServiceClient);
-        return Result.Ok(response);
-    }
-
     public async Task<Result<GetProductsPagedResponse>> GetProductsPagedAsync(
         List<Guid>? companyIds,
         List<Guid>? categoryIds,

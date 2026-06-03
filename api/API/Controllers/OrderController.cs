@@ -27,9 +27,11 @@ public class OrderController(
     }
 
     [HttpGet("history")]
-    public async Task<IActionResult> GetHistory()
+    public async Task<IActionResult> GetHistory(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
     {
-        var result = await orderService.GetHistoryAsync(UserId);
+        var result = await orderService.GetHistoryAsync(UserId, page, pageSize);
         return Ok(result.Value);
     }
 
@@ -181,9 +183,27 @@ public class OrderController(
         return Ok();
     }
 
-    [HttpPost("{id:guid}/submit")]
-    public async Task<IActionResult> Submit(Guid id, SubmitOrderRequest request)
+    [HttpDelete("line")]
+    public async Task<IActionResult> RemoveLine([FromBody] CreateOrderRequest request)
     {
+        var result = await orderService.RemoveLineFromOrderAsync(UserId, request);
+
+        if (result.IsFailed)
+        {
+            return BadRequest(result.Errors);
+        }
+
+        return Ok();
+    }
+
+    [HttpPost("{id:guid}/submit")]
+    public async Task<IActionResult> Submit(Guid id, [FromBody] SubmitOrderRequest request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return ValidationProblem(ModelState);
+        }
+
         var result = await orderService.SubmitAsync(UserId, id, request);
 
         if (result.IsFailed)

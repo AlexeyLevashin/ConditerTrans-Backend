@@ -1,6 +1,6 @@
 ﻿using Application.Common.Interfaces.Persistence;
-using Common;
 using Application.Common.Interfaces.Persistence.Repositories;
+using Common;
 using Application.Common.Interfaces.Services;
 using Common.Enums;
 using Contracts.Orders.Requests;
@@ -30,18 +30,19 @@ public class OrderService(
             return Result.Fail("Пользователь не найден");
         }
 
-        if (!await productRepository.ExistsByIdAsync(request.ProductId))
+        var product = await productRepository.GetProductByIdAsync(request.ProductId);
+        if (product is null)
         {
             return Result.Fail("Товар не найден");
         }
 
-        var hasBlockingOrder = await orderRepository.HasBlockingManagerOrderAsync(managerId);
-        var draftOrderId = await orderRepository.GetDraftOrderIdByManagerIdAsync(managerId);
+        // Один черновик на менеджера: лишние Draft (если накопились) удаляются.
+        var draftOrderId = await orderRepository.EnsureSingleDraftPerManagerAsync(managerId);
 
-        // Пока есть заказ на согласовании/пересогласовании — новые позиции только в новый черновик.
-        if (hasBlockingOrder)
+        if (draftOrderId is not null &&
+            await orderRepository.DraftHasOtherProductionCompanyAsync(draftOrderId.Value, product.CompanyId))
         {
-            draftOrderId = null;
+            return Result.Fail("В одном заказе могут быть только товары одного производителя");
         }
 
         if (draftOrderId is null)
@@ -61,6 +62,31 @@ public class OrderService(
                      request.QuantityOfUnits))
         {
             return Result.Fail("Нельзя изменить заказ, который уже отправлен на согласование");
+        }
+
+        await unitOfWork.SaveChangesAsync();
+        return Result.Ok();
+    }
+
+    public async Task<Result> RemoveLineFromOrderAsync(Guid managerId, CreateOrderRequest request)
+    {
+        if (request.QuantityOfUnits < 1)
+        {
+            return Result.Fail("Количество должно быть больше нуля");
+        }
+
+        var draftOrderId = await orderRepository.EnsureSingleDraftPerManagerAsync(managerId);
+        if (draftOrderId is null)
+        {
+            return Result.Fail("Черновик заказа не найден");
+        }
+
+        if (!await orderRepository.RemoveOrderLineAsync(
+                draftOrderId.Value,
+                request.ProductId,
+                request.QuantityOfUnits))
+        {
+            return Result.Fail("Позиция не найдена в черновике или заказ уже отправлен");
         }
 
         await unitOfWork.SaveChangesAsync();
@@ -124,6 +150,8 @@ public class OrderService(
 
     public async Task<Result<GetCurrentOrderResponse>> GetCurrentDraftAsync(Guid managerId)
     {
+        await orderRepository.EnsureSingleDraftPerManagerAsync(managerId);
+
         var order = await orderRepository.GetDraftByManagerIdAsync(managerId);
 
         if (order is null)
@@ -139,10 +167,22 @@ public class OrderService(
         return Result.Ok(order.ToCurrentOrderDto());
     }
 
-    public async Task<Result<GetOrderHistoryResponse>> GetHistoryAsync(Guid managerId)
+    public async Task<Result<GetOrderHistoryResponse>> GetHistoryAsync(
+        Guid managerId,
+        int page,
+        int pageSize)
     {
-        var orders = await orderRepository.GetAllByManagerIdAsync(managerId);
-        return Result.Ok(orders.ToHistoryDto());
+        var safePage = Math.Max(1, page);
+        var safePageSize = Math.Clamp(pageSize, 1, 100);
+
+        var (orders, totalCount) = await orderRepository.GetHistoryByManagerIdPagedAsync(
+            managerId,
+            safePage,
+            safePageSize);
+
+        var totalPages = totalCount == 0 ? 0 : (int)Math.Ceiling(totalCount / (double)safePageSize);
+
+        return Result.Ok(orders.ToHistoryDto(totalCount, safePage, safePageSize, totalPages));
     }
 
     public async Task<Result<ManagerOrderDetailResponse>> GetByIdAsync(Guid managerId, Guid orderId)
@@ -234,39 +274,32 @@ public class OrderService(
 
     public async Task<Result> SubmitAsync(Guid managerId, Guid orderId, SubmitOrderRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.ProductionAddress))
+        var validation = SubmitOrderRequestValidator.Validate(request);
+        if (validation.IsFailed)
         {
-            return Result.Fail("Адрес погрузки обязателен");
+            return validation;
         }
 
-        if (string.IsNullOrWhiteSpace(request.DeliveryAddress))
-        {
-            return Result.Fail("Адрес доставки обязателен");
-        }
-
-        if (string.IsNullOrWhiteSpace(request.TypePayment))
-        {
-            return Result.Fail("Способ оплаты обязателен");
-        }
-
-        if (!await orderRepository.ExistsDraftForManagerAsync(orderId, managerId))
+        var draft = await orderRepository.GetByIdAndManagerIdAsync(orderId, managerId);
+        if (draft is null || draft.Status != OrderStatus.Draft)
         {
             return Result.Fail("Заказ не найден");
         }
 
-        if (!await orderRepository.HasOrderLinesAsync(orderId))
+        var companyIds = draft.OrderLines
+            .Where(line => line.Product is not null)
+            .Select(line => line.Product!.CompanyId)
+            .Distinct()
+            .ToList();
+
+        if (companyIds.Count == 0)
         {
-            return Result.Fail("Нельзя отправить пустой заказ");
+            return Result.Fail("В заказе нет товаров");
         }
 
-        if (request.RequestedDeliveryDate == default)
+        if (companyIds.Count > 1)
         {
-            return Result.Fail("Укажите дату доставки");
-        }
-
-        if (request.RequestedDeliveryDate.Date < DateTime.UtcNow.Date)
-        {
-            return Result.Fail("Дата доставки не может быть в прошлом");
+            return Result.Fail("В одном заказе могут быть только товары одного производителя");
         }
 
         await orderRepository.SubmitDraftAsync(
@@ -274,8 +307,8 @@ public class OrderService(
             managerId,
             request.ProductionAddress.Trim(),
             request.DeliveryAddress.Trim(),
-            request.TypePayment.Trim(),
-            DateTimeUtc.FromDate(request.RequestedDeliveryDate));
+            SubmitOrderRequestValidator.ToPaymentStorage(request),
+            SubmitOrderRequestValidator.ToRequestedDeliveryUtc(request));
 
         await unitOfWork.SaveChangesAsync();
         return Result.Ok();
