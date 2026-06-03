@@ -1,4 +1,5 @@
 using System.Globalization;
+using Common;
 using Common.Enums;
 using Contracts.Orders.Responses;
 using Domain.Entities;
@@ -33,9 +34,18 @@ public static class OrderMapper
         };
     }
 
-    public static GetOrderHistoryResponse ToHistoryDto(this List<Order> orders) => new()
+    public static GetOrderHistoryResponse ToHistoryDto(
+        this List<Order> orders,
+        int totalCount,
+        int page,
+        int pageSize,
+        int totalPages) => new()
     {
-        Result = orders.Select(ToManagerListItemDto).Select(ToHistoryItemDto).ToList()
+        Result = orders.Select(ToManagerListItemDto).Select(ToHistoryItemDto).ToList(),
+        TotalCount = totalCount,
+        Page = page,
+        PageSize = pageSize,
+        TotalPages = totalPages
     };
 
     public static ManagerOrderDetailResponse ToManagerDetailDto(this Order order)
@@ -173,7 +183,19 @@ public static class OrderMapper
             Status = listItem.Status,
             Amount = listItem.Amount,
             PaymentType = listItem.PaymentType,
+            PaymentMethod = listItem.PaymentMethod,
+            PaymentMethodLabel = listItem.PaymentMethodLabel,
+            RequestedDeliveryDate = listItem.RequestedDeliveryDate,
+            RequiresDeadlineConfirmation = listItem.RequiresDeadlineConfirmation,
+            DeadlineConfirmationExpiresAt = listItem.DeadlineConfirmationExpiresAt,
+            DeadlineConfirmationPhase = listItem.DeadlineConfirmationPhase,
             ProductionAddress = order.ProductionAddress,
+            ProposedDeliveryDate = order.ProposedDeliveryDate,
+            RescheduleReason = order.RescheduleReason,
+            ShipmentLengthM = order.ShipmentLengthM,
+            ShipmentWidthM = order.ShipmentWidthM,
+            ShipmentHeightM = order.ShipmentHeightM,
+            ShipmentWeightKg = order.ShipmentWeightKg,
             Lines = order.OrderLines
                 .Where(line => line.Product is not null)
                 .Select(line => ToCoordinatorLineDto(line))
@@ -192,6 +214,8 @@ public static class OrderMapper
             .Select(ToCoordinatorLineDto)
             .ToList();
 
+        var payment = MapPayment(order.PaymentType);
+
         return new DispatcherOrderListItemResponse
         {
             Id = order.Id,
@@ -201,12 +225,24 @@ public static class OrderMapper
             DeliveryAddress = order.DeliveryAddress,
             Status = order.Status,
             PaymentType = order.PaymentType,
+            PaymentMethod = payment.Method,
+            PaymentMethodLabel = payment.Label,
             Amount = lines.Sum(line => line.QuantityOfUnits * line.ProductPrice),
             RequestedDeliveryDate = order.RequestedDeliveryDate,
             RequiresDeadlineConfirmation = RequiresDeadlineConfirmation(order),
             DeadlineConfirmationExpiresAt = order.DeadlineConfirmationExpiresAt,
             DeadlineConfirmationPhase = order.DeadlineConfirmationPhase
         };
+    }
+
+    private static (PaymentMethod? Method, string? Label) MapPayment(string? stored)
+    {
+        if (!PaymentMethodHelper.TryParse(stored, out var method))
+        {
+            return (null, PaymentMethodHelper.ToDisplayLabelOrRaw(stored));
+        }
+
+        return (method, PaymentMethodHelper.ToDisplayLabel(method));
     }
 
     private static CoordinatorOrderLineResponse ToCoordinatorLineDto(OrderLine line)

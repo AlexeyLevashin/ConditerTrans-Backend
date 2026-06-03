@@ -8,8 +8,13 @@ namespace Application.Common.Interfaces.Services;
 public interface IOrderService
 {
     Task<Result> CreateAsync(Guid managerId, CreateOrderRequest request);
+
+    Task<Result> RemoveLineFromOrderAsync(Guid managerId, CreateOrderRequest request);
     Task<Result<GetCurrentOrderResponse>> GetCurrentDraftAsync(Guid managerId);
-    Task<Result<GetOrderHistoryResponse>> GetHistoryAsync(Guid managerId);
+    Task<Result<GetOrderHistoryResponse>> GetHistoryAsync(
+        Guid managerId,
+        int page,
+        int pageSize);
     Task<Result<ManagerOrderDetailResponse>> GetByIdAsync(Guid managerId, Guid orderId);
     Task<Result<ManagerOrderDetailResponse>> AcceptManagerRescheduleAsync(
         Guid managerId,

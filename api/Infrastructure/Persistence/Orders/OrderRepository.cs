@@ -14,8 +14,44 @@ public class OrderRepository(AppDbContext context) : IOrderRepository
         return context.Orders
             .Where(o => o.Status == OrderStatus.Draft && o.ManagerId == managerId)
             .OrderByDescending(o => o.CreationDate)
+            .ThenByDescending(o => o.Id)
             .Select(o => (Guid?)o.Id)
             .FirstOrDefaultAsync();
+    }
+
+    public async Task<Guid?> EnsureSingleDraftPerManagerAsync(Guid managerId)
+    {
+        var draftIds = await context.Orders
+            .Where(o => o.ManagerId == managerId && o.Status == OrderStatus.Draft)
+            .OrderByDescending(o => o.CreationDate)
+            .ThenByDescending(o => o.Id)
+            .Select(o => o.Id)
+            .ToListAsync();
+
+        if (draftIds.Count == 0)
+        {
+            return null;
+        }
+
+        var keepId = draftIds[0];
+        var extraIds = draftIds.Skip(1).ToList();
+
+        if (extraIds.Count > 0)
+        {
+            await context.OrderChangeHistories
+                .Where(h => extraIds.Contains(h.OrderId))
+                .ExecuteDeleteAsync();
+
+            await context.OrderLines
+                .Where(ol => extraIds.Contains(ol.OrderId))
+                .ExecuteDeleteAsync();
+
+            await context.Orders
+                .Where(o => extraIds.Contains(o.Id))
+                .ExecuteDeleteAsync();
+        }
+
+        return keepId;
     }
 
     public Task<Order?> GetDraftByManagerIdAsync(Guid managerId)
@@ -131,15 +167,95 @@ public class OrderRepository(AppDbContext context) : IOrderRepository
         return true;
     }
 
+    public Task<Guid?> GetDraftProductionCompanyIdAsync(Guid orderId)
+    {
+        return context.OrderLines
+            .AsNoTracking()
+            .Where(ol => ol.OrderId == orderId)
+            .Join(
+                context.Products,
+                ol => ol.ProductId,
+                p => p.Id,
+                (_, p) => (Guid?)p.CompanyId)
+            .FirstOrDefaultAsync();
+    }
+
+    public Task<bool> DraftHasOtherProductionCompanyAsync(Guid orderId, Guid productCompanyId)
+    {
+        return context.OrderLines
+            .AsNoTracking()
+            .Where(ol => ol.OrderId == orderId)
+            .Join(
+                context.Products,
+                ol => ol.ProductId,
+                p => p.Id,
+                (_, p) => p.CompanyId)
+            .AnyAsync(companyId => companyId != productCompanyId);
+    }
+
+    public async Task<bool> RemoveOrderLineAsync(Guid orderId, Guid productId, int quantityOfUnits)
+    {
+        var isDraft = await context.Orders.AnyAsync(o =>
+            o.Id == orderId && o.Status == OrderStatus.Draft);
+
+        if (!isDraft)
+        {
+            return false;
+        }
+
+        var line = await context.OrderLines
+            .FirstOrDefaultAsync(ol => ol.OrderId == orderId && ol.ProductId == productId);
+
+        if (line is null)
+        {
+            return false;
+        }
+
+        if (quantityOfUnits >= line.QuantityOfUnits)
+        {
+            context.OrderLines.Remove(line);
+        }
+        else
+        {
+            line.QuantityOfUnits -= quantityOfUnits;
+        }
+
+        return true;
+    }
+
     public Task<List<Order>> GetAllByManagerIdAsync(Guid managerId)
+    {
+        return BuildManagerHistoryQuery(managerId)
+            .OrderByDescending(o => o.CreationDate)
+            .ToListAsync();
+    }
+
+    public async Task<(List<Order> Items, int TotalCount)> GetHistoryByManagerIdPagedAsync(
+        Guid managerId,
+        int page,
+        int pageSize)
+    {
+        var query = BuildManagerHistoryQuery(managerId);
+
+        var totalCount = await query.CountAsync();
+
+        var items = await query
+            .OrderByDescending(o => o.CreationDate)
+            .ThenByDescending(o => o.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (items, totalCount);
+    }
+
+    private IQueryable<Order> BuildManagerHistoryQuery(Guid managerId)
     {
         return context.Orders
             .AsNoTracking()
             .Where(o => o.ManagerId == managerId && o.Status != OrderStatus.Draft)
             .Include(o => o.OrderLines)
-                .ThenInclude(ol => ol.Product)
-            .OrderByDescending(o => o.CreationDate)
-            .ToListAsync();
+                .ThenInclude(ol => ol.Product);
     }
 
     public Task<Order?> GetByIdAndManagerIdAsync(Guid orderId, Guid managerId)

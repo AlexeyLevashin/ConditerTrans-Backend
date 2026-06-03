@@ -7,10 +7,18 @@ namespace Application.CargoHandling;
 
 internal static class CargoMapper
 {
-    public static CargoListResponse ToListDto(this IEnumerable<Domain.Entities.Cargo> cargos) =>
+    public static CargoListResponse ToListDto(
+        this IEnumerable<Domain.Entities.Cargo> cargos,
+        int totalCount,
+        int page,
+        int pageSize) =>
         new()
         {
-            Result = cargos.Select(MapItem).ToList()
+            Result = cargos.Select(MapItem).ToList(),
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize,
+            TotalPages = totalCount == 0 ? 0 : (int)Math.Ceiling(totalCount / (double)pageSize)
         };
 
     public static CargoItemResponse ToItemDto(this Domain.Entities.Cargo cargo) => MapItem(cargo);

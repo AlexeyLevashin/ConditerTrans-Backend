@@ -7,6 +7,10 @@ namespace Application.Common.Interfaces.Persistence.Repositories;
 public interface IOrderRepository
 {
     Task<Guid?> GetDraftOrderIdByManagerIdAsync(Guid managerId);
+
+    /// <summary>Оставляет один черновик (самый новый), остальные Draft менеджера удаляет. Возвращает id черновика или null.</summary>
+    Task<Guid?> EnsureSingleDraftPerManagerAsync(Guid managerId);
+
     Task<Order?> GetDraftByManagerIdAsync(Guid managerId);
     Task<bool> HasBlockingManagerOrderAsync(Guid managerId);
     Task CreateDraftAsync(Order order, Guid productId, int quantityOfUnits);
@@ -15,7 +19,18 @@ public interface IOrderRepository
 
     Task DeleteDraftsByManagerIdAsync(Guid managerId);
     Task<bool> UpsertOrderLineAsync(Guid orderId, Guid productId, int quantityOfUnits);
+
+    Task<Guid?> GetDraftProductionCompanyIdAsync(Guid orderId);
+
+    Task<bool> DraftHasOtherProductionCompanyAsync(Guid orderId, Guid productCompanyId);
+
+    Task<bool> RemoveOrderLineAsync(Guid orderId, Guid productId, int quantityOfUnits);
     Task<List<Order>> GetAllByManagerIdAsync(Guid managerId);
+
+    Task<(List<Order> Items, int TotalCount)> GetHistoryByManagerIdPagedAsync(
+        Guid managerId,
+        int page,
+        int pageSize);
     Task<Order?> GetByIdAndManagerIdAsync(Guid orderId, Guid managerId);
     Task<bool> ExistsDraftForManagerAsync(Guid orderId, Guid managerId);
     Task<bool> HasOrderLinesAsync(Guid orderId);
