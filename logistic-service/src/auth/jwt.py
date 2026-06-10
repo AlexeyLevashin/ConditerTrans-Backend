@@ -1,11 +1,9 @@
 from typing import Any
-
 import jwt
 from jwt.exceptions import InvalidTokenError
-
-from app.enums.user_role import UserRole
-from app.schemas.auth import CurrentUser
-from app.settings import Settings
+from src.auth.schemas import User
+from src.auth.user_role import UserRole
+from src.settings import Settings
 
 ROLE_CLAIM_KEYS = (
     "role",
@@ -52,7 +50,7 @@ def _parse_role(payload: dict[str, Any]) -> UserRole:
         raise JwtValidationError(f"Unknown role: {raw_role}") from exc
 
 
-def decode_access_token(token: str, settings: Settings) -> CurrentUser:
+def decode_access_token(token: str, settings: Settings) -> User:
     try:
         payload = jwt.decode(
             token,
@@ -68,4 +66,4 @@ def decode_access_token(token: str, settings: Settings) -> CurrentUser:
     if not user_id:
         raise JwtValidationError("User id claim is missing")
 
-    return CurrentUser(user_id=user_id, role=_parse_role(payload))
+    return User(user_id=user_id, role=_parse_role(payload))

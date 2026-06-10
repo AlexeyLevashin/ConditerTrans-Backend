@@ -5,3 +5,4 @@ class UserRole(StrEnum):
     MANAGER = "Manager"
     DISPATCHER = "Dispatcher"
     COORDINATOR = "Coordinator"
+    DRIVER = "Driver"

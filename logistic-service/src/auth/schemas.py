@@ -1,10 +1,9 @@
 from dataclasses import dataclass
-
-from app.enums.user_role import UserRole
+from src.auth.user_role import UserRole
 
 
 @dataclass(frozen=True)
-class CurrentUser:
+class User:
     user_id: str
     role: UserRole
 
