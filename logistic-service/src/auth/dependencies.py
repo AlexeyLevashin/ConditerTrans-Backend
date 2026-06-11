@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from typing import Annotated
-from fastapi import Depends
+from fastapi import Depends, WebSocket, WebSocketException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from src.auth.exceptions import AuthForbidden
 from src.auth.jwt import JwtValidationError, decode_access_token
@@ -29,6 +29,38 @@ def require_roles(*roles: UserRole) -> Callable[..., User]:
     ) -> User:
         if not current_user.has_any_role(*roles):
             raise AuthForbidden()
+        return current_user
+
+    return checker
+
+
+def _extract_ws_token(websocket: WebSocket) -> str | None:
+    auth = websocket.headers.get("authorization")
+    if auth and auth.lower().startswith("bearer "):
+        return auth[7:].strip()
+
+    return None
+
+
+async def get_current_user_ws(
+    websocket: WebSocket,
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> User:
+    token = _extract_ws_token(websocket)
+    if not token:
+        raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
+    try:
+        return decode_access_token(token, settings)
+    except JwtValidationError:
+        raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
+
+
+def require_roles_ws(*roles: UserRole) -> Callable[..., User]:
+    def checker(
+        current_user: Annotated[User, Depends(get_current_user_ws)],
+    ) -> User:
+        if not current_user.has_any_role(*roles):
+            raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
         return current_user
 
     return checker

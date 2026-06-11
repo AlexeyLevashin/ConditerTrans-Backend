@@ -21,7 +21,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 for router in routers:
     app.include_router(router)
 
