@@ -9,3 +9,4 @@ SQLAlchemy==2.0.50
 uvicorn[standard]==0.48.0
 
 starlette
+pydantic

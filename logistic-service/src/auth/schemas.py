@@ -1,10 +1,11 @@
+import uuid
 from dataclasses import dataclass
 from src.auth.user_role import UserRole
 
 
 @dataclass(frozen=True)
 class User:
-    user_id: str
+    user_id: uuid.UUID
     role: UserRole
 
     def has_role(self, role: UserRole) -> bool:

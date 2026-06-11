@@ -3,10 +3,12 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import create_engine, pool
 
-from database.core.database import Base
+from src.database.core.database import Base
 from src.settings import get_settings
 
-import src.db.models  # noqa: F401
+# Все ORM-модели должны быть импортированы до target_metadata,
+# иначе autogenerate увидит пустую схему.
+import src.sessions.models  # noqa: F401
 
 config = context.config
 settings = get_settings()

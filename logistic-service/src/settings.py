@@ -8,6 +8,8 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 
 
 class Settings(BaseSettings):
+    service_name: str = "logistic-service"
+
     model_config = SettingsConfigDict(
         env_file=ROOT_DIR / ".env",
         env_file_encoding="utf-8",
@@ -31,18 +33,17 @@ class Settings(BaseSettings):
 
     @property
     def database_url(self) -> str:
-        password = quote_plus(self.logistic_db_password)
         return (
-            f"postgresql+asyncpg://{self.logistic_db_user}:{password}"
+            f"postgresql+asyncpg://{self.logistic_db_user}:{self.logistic_db_password}"
             f"@{self.logistic_db_host}:{self.logistic_db_port}/{self.logistic_db_name}"
         )
 
     @property
     def alembic_database_url(self) -> str:
-        password = quote_plus(self.logistic_db_password)
         return (
-            f"postgresql+psycopg://{self.logistic_db_user}:{password}"
+            f"postgresql+psycopg://{self.logistic_db_user}:{self.logistic_db_password}"
             f"@{self.logistic_db_host}:{self.logistic_db_port}/{self.logistic_db_name}"
+            f"?options=-c%20search_path={self.service_name}"
         )
 
 
