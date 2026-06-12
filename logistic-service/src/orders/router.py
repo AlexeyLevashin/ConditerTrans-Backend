@@ -47,3 +47,7 @@ async def new_orders(
 @router.post("/orders/notify")
 async def notify_order(order: OrderNotify):
     await manager.broadcast(order.model_dump(mode="json"))
+
+
+@router.post("/orders")
+async def 
