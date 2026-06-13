@@ -1,0 +1,34 @@
+---
+description: .NET API conventions (ConditerTrans api/)
+globs: api/**/*
+alwaysApply: false
+---
+
+# API (.NET 10)
+
+## Слои
+
+Controller → Application Service → Repository (Infrastructure) → EF Core (DataAccess).
+
+## Паттерны
+
+- `FluentResults` → контроллер мапит в HTTP
+- DTO в `Contracts/`, entities в `Domain/Entities/`
+- Мапперы: статические `*Mapper` в Application
+- ID: `Guid.CreateVersion7()`
+- БД: snake_case columns, конфиги в `DataAccess/Configurations/`
+- RBAC: проверки в сервисе, русские строки ошибок → `Forbid()`
+
+## Новый endpoint
+
+1. `Contracts/{Feature}/Requests|Responses/`
+2. `Application/{Feature}/{Feature}Service.cs` + интерфейс
+3. `API/Controllers/{Feature}Controller.cs`
+4. При новой таблице — entity + configuration + EF migration
+
+## Миграции
+
+```bash
+dotnet ef migrations add Name --project DataAccess --startup-project API
+dotnet ef database update --project DataAccess --startup-project API
+```

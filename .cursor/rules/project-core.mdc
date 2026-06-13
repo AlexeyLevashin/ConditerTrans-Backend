@@ -1,0 +1,28 @@
+---
+description: ConditerTrans monorepo — core context for AI agents
+alwaysApply: true
+---
+
+# ConditerTrans — базовый контекст
+
+Полная документация: **AGENTS.md** в корне. Читай перед изменениями.
+
+## Монорепо
+
+- `api/` — .NET 10 REST API (PostgreSQL, JWT, Hangfire)
+- `ConditerTrans-Frontend/` — Expo 54 UI (web/iOS/Android), отдельный git-репо
+- `logistic-service/` — FastAPI (сессии, WS; GPS **не реализован**)
+- `file-service/` — FastAPI (S3)
+
+Legacy: старый `trans-bulki/` удалён. Актуальный фронт — **`ConditerTrans-Frontend/`**.
+
+## Роли
+
+`Manager` · `Dispatcher` · `Coordinator` · `Driver` — RBAC в **сервисах** backend.
+
+## Правила
+
+- Минимальный diff; ошибки — на русском
+- API change → обнови `ConditerTrans-Frontend/src/api/`
+- Фронт **не** в docker-compose; локально: `npm run start:local`
+- Тестов нет — `dotnet build` + Swagger + `tsc --noEmit`

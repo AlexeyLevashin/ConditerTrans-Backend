@@ -1,0 +1,38 @@
+---
+description: Expo frontend conventions (ConditerTrans-Frontend)
+globs: ConditerTrans-Frontend/**/*
+alwaysApply: false
+---
+
+# Frontend (Expo 54)
+
+Путь: **`ConditerTrans-Frontend/`** (не `trans-bulki/`). Отдельный git: CandyOrganization/ConditerTrans-Frontend.
+
+## Структура
+
+- Экраны: `app/` (Expo Router)
+- API: `src/api/<domain>.ts` → `src/api/client.ts`
+- Auth: `src/context/AuthContext.tsx` + `src/api/tokenStorage.ts`
+- Alias: `@/*` → `src/*`
+
+## Env
+
+`EXPO_PUBLIC_*` — см. `src/config/env.ts`. `npm run env:local|prod`.
+
+## Паттерны
+
+- Auth gate per-screen: `<Redirect href="/login" />`
+- Pagination: `DispatcherPagination`
+- Карты: `.web.tsx` vs `.tsx` (WebView)
+- UI: `src/components/ui/Ui.tsx`, `src/theme/colors.ts`
+- Язык UI: русский
+
+## При изменении backend API
+
+Обнови модуль в `src/api/` и типы в `src/types/`. Документация контрактов — `docs/`.
+
+## Запуск
+
+```bash
+cd ConditerTrans-Frontend && npm install && npm run start:local
+```

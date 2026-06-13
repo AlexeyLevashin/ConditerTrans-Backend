@@ -1,0 +1,26 @@
+---
+description: Python microservices (logistic-service, file-service)
+globs: "{logistic-service/**,file-service/**}"
+alwaysApply: false
+---
+
+# Python microservices
+
+## logistic-service (FastAPI, :8000)
+
+- Entry: `main.py`, settings: `src/settings.py`
+- JWT совпадает с main API (`LOGISTIC_JWT_*`)
+- Schema PostgreSQL: `logistic-service`
+- Alembic при старте Docker-контейнера
+- **GPS tracking не реализован** — `coordinates/router.py` пустой
+
+## file-service (FastAPI, :80)
+
+- Routes prefixed `/file-service/`
+- S3 через boto3, metadata в PostgreSQL (отдельная БД)
+- Main API читает URLs через `FileServiceClient`
+
+## Стиль
+
+- Async SQLAlchemy 2 + asyncpg
+- Env из корневого `.env` (Docker) или `.env.example`
