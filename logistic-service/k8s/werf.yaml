@@ -1,0 +1,5 @@
+project: conditer-trans
+configVersion: 1
+---
+image: ubuntu-test
+dockerfile: ./Dockerfile
