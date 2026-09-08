@@ -17,28 +17,19 @@ services:
     networks:
       - backend
     restart: always
-
-  trans-bulki:
-    build:
-      context: ./trans-bulki
-      args:
-        EXPO_PUBLIC_API_URL: ${EXPO_PUBLIC_API_URL:-/api}
-        EXPO_PUBLIC_TRACKING_WS_URL: ${EXPO_PUBLIC_TRACKING_WS_URL:-/logistic-service}
-        EXPO_PUBLIC_APP_URL: ${EXPO_PUBLIC_APP_URL:-}
-    restart: unless-stopped
-    networks: [backend]
-
-  nginx-proxy-manager:
-    image: jc21/nginx-proxy-manager:latest
-    restart: unless-stopped
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: mydatabase
     ports:
-      - "80:80"
-      - "81:81"
-      - "443:443"
+      - "5432:5432"
     volumes:
-      - ./npm/data:/data
-      - ./npm/letsencrypt:/etc/letsencrypt
-    networks: [backend]
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
 
 networks:
   backend:
+  postgres_data:
