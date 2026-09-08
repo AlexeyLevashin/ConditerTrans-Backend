@@ -1,13 +1,7 @@
 # Local dev overrides.
 # Usage: docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
 
-services:
-  logistic-service:
-    env_file:
-      - ./logistic-service/.env.local
-    environment:
-      LOGISTIC_APP_ENV: local
-  
+services:  
   api:
     build:
       context: ./api
