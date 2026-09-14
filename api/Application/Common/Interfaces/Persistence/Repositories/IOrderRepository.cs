@@ -85,7 +85,8 @@ public interface IOrderRepository
         string? comment,
         DateTime? proposedDeliveryDate = null,
         string? rescheduleReason = null,
-        bool clearRescheduleProposal = false);
+        bool clearRescheduleProposal = false,
+        Guid? rejectionReasonId = null);
 
     Task<List<(string Reason, int OrderCount)>> GetRejectionStatisticsAsync(
         Guid productionCompanyId,

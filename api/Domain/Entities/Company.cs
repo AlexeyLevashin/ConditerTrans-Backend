@@ -34,4 +34,5 @@ public class Company
     public CompanyType CompanyType { get; set; }
 
     public List<Employee> Employees { get; set; } = new();
+    public List<RejectionReason> RejectionReasons { get; set; } = [];
 }

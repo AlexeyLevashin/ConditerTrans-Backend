@@ -372,9 +372,15 @@ namespace DataAccess.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("order_status");
 
+                    b.Property<Guid?>("RejectionReasonId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("rejection_reason_id");
+
                     b.HasKey("Id");
 
                     b.HasIndex("OrderId");
+
+                    b.HasIndex("RejectionReasonId");
 
                     b.HasIndex("OrderStatus", "ChangeTime");
 
@@ -407,6 +413,79 @@ namespace DataAccess.Migrations
                     b.HasIndex("ProductId");
 
                     b.ToTable("order_lines", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Entities.RejectionReason", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("CompanyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("company_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_default");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId");
+
+                    b.ToTable("rejection_reasons", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_rejection_reasons_scope", "(is_default = TRUE AND company_id IS NULL) OR (is_default = FALSE AND company_id IS NOT NULL)");
+                        });
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000001"),
+                            CreatedAt = new DateTime(2026, 9, 15, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            IsDefault = true,
+                            Name = "Нехватка ресурсов"
+                        },
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000002"),
+                            CreatedAt = new DateTime(2026, 9, 15, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            IsDefault = true,
+                            Name = "Отсутствует необходимое сырьё"
+                        },
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000003"),
+                            CreatedAt = new DateTime(2026, 9, 15, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            IsDefault = true,
+                            Name = "Производственные мощности загружены"
+                        },
+                        new
+                        {
+                            Id = new Guid("10000000-0000-0000-0000-000000000004"),
+                            CreatedAt = new DateTime(2026, 9, 15, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            IsDefault = true,
+                            Name = "Невозможно выполнить заказ в указанный срок"
+                        });
                 });
 
             modelBuilder.Entity("Domain.Entities.TransportVehicle", b =>
@@ -704,7 +783,14 @@ namespace DataAccess.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Domain.Entities.RejectionReason", "RejectionReason")
+                        .WithMany("OrderChangeHistories")
+                        .HasForeignKey("RejectionReasonId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Order");
+
+                    b.Navigation("RejectionReason");
                 });
 
             modelBuilder.Entity("Domain.Entities.OrderLine", b =>
@@ -724,6 +810,16 @@ namespace DataAccess.Migrations
                     b.Navigation("Order");
 
                     b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("Domain.Entities.RejectionReason", b =>
+                {
+                    b.HasOne("Domain.Entities.Company", "Company")
+                        .WithMany("RejectionReasons")
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Company");
                 });
 
             modelBuilder.Entity("Domain.Entities.TransportVehicle", b =>
@@ -815,6 +911,8 @@ namespace DataAccess.Migrations
             modelBuilder.Entity("Domain.Entities.Company", b =>
                 {
                     b.Navigation("Employees");
+
+                    b.Navigation("RejectionReasons");
                 });
 
             modelBuilder.Entity("Domain.Entities.Order", b =>
@@ -822,6 +920,11 @@ namespace DataAccess.Migrations
                     b.Navigation("Histories");
 
                     b.Navigation("OrderLines");
+                });
+
+            modelBuilder.Entity("Domain.Entities.RejectionReason", b =>
+                {
+                    b.Navigation("OrderChangeHistories");
                 });
 
             modelBuilder.Entity("Domain.Entities.VehicleBrand", b =>

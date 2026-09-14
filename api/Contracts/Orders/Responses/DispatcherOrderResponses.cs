@@ -33,6 +33,7 @@ public class DispatcherOrderListItemResponse
 
 public class DispatcherOrderDetailResponse : DispatcherOrderListItemResponse
 {
+    public RejectionDetailsResponse? Rejection { get; set; }
     public string? ProductionAddress { get; set; }
     public DateTime? ProposedDeliveryDate { get; set; }
     public string? RescheduleReason { get; set; }

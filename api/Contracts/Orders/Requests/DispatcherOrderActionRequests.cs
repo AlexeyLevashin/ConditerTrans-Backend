@@ -2,7 +2,7 @@ namespace Contracts.Orders.Requests;
 
 public class RejectDispatcherOrderRequest
 {
-    public string Reason { get; set; } = null!;
+    public Guid ReasonId { get; set; }
 }
 
 public class RescheduleDispatcherOrderRequest

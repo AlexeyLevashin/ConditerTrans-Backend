@@ -265,6 +265,7 @@ public class OrderRepository(AppDbContext context) : IOrderRepository
             .Where(o => o.Id == orderId && o.ManagerId == managerId)
             .Include(o => o.OrderLines)
                 .ThenInclude(ol => ol.Product)
+            .Include(o => o.Histories)
             .FirstOrDefaultAsync();
     }
 
@@ -424,6 +425,7 @@ public class OrderRepository(AppDbContext context) : IOrderRepository
     public Task<Order?> GetByIdForDispatcherAsync(Guid orderId, Guid productionCompanyId)
     {
         return BuildDispatcherOrdersQuery(productionCompanyId)
+            .Include(o => o.Histories)
             .Where(o => o.Id == orderId && o.Status != OrderStatus.Draft)
             .FirstOrDefaultAsync();
     }
@@ -483,7 +485,8 @@ public class OrderRepository(AppDbContext context) : IOrderRepository
         string? comment,
         DateTime? proposedDeliveryDate = null,
         string? rescheduleReason = null,
-        bool clearRescheduleProposal = false)
+        bool clearRescheduleProposal = false,
+        Guid? rejectionReasonId = null)
     {
         var order = await context.Orders.FirstOrDefaultAsync(o => o.Id == orderId);
         if (order is null)
@@ -534,7 +537,8 @@ public class OrderRepository(AppDbContext context) : IOrderRepository
             OrderId = orderId,
             OrderStatus = status,
             ChangeTime = DateTime.UtcNow,
-            Comment = comment
+            Comment = comment,
+            RejectionReasonId = rejectionReasonId
         });
     }
 

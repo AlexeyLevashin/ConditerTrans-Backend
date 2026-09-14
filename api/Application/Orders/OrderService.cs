@@ -16,6 +16,7 @@ public class OrderService(
     IUserRepository userRepository,
     IProductRepository productRepository,
     ICompanyRepository companyRepository,
+    IRejectionReasonRepository rejectionReasonRepository,
     IUnitOfWork unitOfWork) : IOrderService
 {
     private const string DispatcherOnlyError = "Доступно только диспетчеру производства";
@@ -400,9 +401,15 @@ public class OrderService(
         Guid orderId,
         RejectDispatcherOrderRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Reason))
+        if (request.ReasonId == Guid.Empty)
         {
             return Result.Fail("Причина отказа обязательна");
+        }
+
+        var reason = await rejectionReasonRepository.GetAvailableByIdAsync(request.ReasonId, productionCompanyId);
+        if (reason is null)
+        {
+            return Result.Fail("Причина отказа не найдена или недоступна для вашей компании");
         }
 
         return await ChangeDispatcherOrderStatusAsync(
@@ -412,8 +419,9 @@ public class OrderService(
             orderId,
             allowedStatuses: [OrderStatus.PendingApproval, OrderStatus.Rescheduled],
             newStatus: OrderStatus.Rejected,
-            comment: request.Reason.Trim(),
-            setProductionAddress: false);
+            comment: reason.Name,
+            setProductionAddress: false,
+            rejectionReasonId: reason.Id);
     }
 
     public async Task<Result<DispatcherOrderDetailResponse>> RescheduleDispatcherOrderAsync(
@@ -581,7 +589,8 @@ public class OrderService(
         string? comment,
         bool setProductionAddress,
         DateTime? proposedDeliveryDate = null,
-        string? rescheduleReason = null)
+        string? rescheduleReason = null,
+        Guid? rejectionReasonId = null)
     {
         var access = await EnsureDispatcherAsync(userId, userRole);
         if (access.IsFailed)
@@ -620,7 +629,8 @@ public class OrderService(
             comment,
             proposedDeliveryDate,
             rescheduleReason,
-            clearRescheduleProposal: false);
+            clearRescheduleProposal: false,
+            rejectionReasonId: rejectionReasonId);
 
         await unitOfWork.SaveChangesAsync();
 

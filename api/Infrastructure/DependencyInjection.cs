@@ -15,6 +15,7 @@ using Infrastructure.Persistence.Employees;
 using Infrastructure.Persistence.Invitation;
 using Infrastructure.Persistence.Orders;
 using Infrastructure.Persistence.Products;
+using Infrastructure.Persistence.RejectionReasons;
 using Infrastructure.Orders;
 using Infrastructure.Persistence.TransportVehicles;
 using Infrastructure.Persistence.Users;
@@ -41,6 +42,7 @@ public static class DependencyInjection
         services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IOrderRepository, OrderRepository>();
+        services.AddScoped<IRejectionReasonRepository, RejectionReasonRepository>();
         services.AddScoped<ICargoRepository, CargoRepository>();
         services.AddScoped<ITransportVehicleRepository, TransportVehicleRepository>();
         services.AddScoped<IOrderDeadlineConfirmationService, OrderDeadlineConfirmationService>();
