@@ -107,6 +107,17 @@ public static class DependencyInjection
 
                 options.Events = new JwtBearerEvents
                 {
+                    OnMessageReceived = context =>
+                    {
+                        var accessToken = context.Request.Query["access_token"];
+                        if (!string.IsNullOrEmpty(accessToken) &&
+                            context.HttpContext.Request.Path.StartsWithSegments("/api/hubs"))
+                        {
+                            context.Token = accessToken;
+                        }
+
+                        return Task.CompletedTask;
+                    },
                     OnAuthenticationFailed = context =>
                     {
                         var logger = context.HttpContext.RequestServices
