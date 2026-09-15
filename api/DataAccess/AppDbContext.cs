@@ -16,6 +16,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<OrderLine> OrderLines => Set<OrderLine>();
     public DbSet<OrderChangeHistory> OrderChangeHistories => Set<OrderChangeHistory>();
     public DbSet<RejectionReason> RejectionReasons => Set<RejectionReason>();
+    public DbSet<DispatcherRejectionFact> DispatcherRejectionFacts => Set<DispatcherRejectionFact>();
     public DbSet<Cargo> Cargos => Set<Cargo>();
     public DbSet<CargoChangeHistory> CargoChangeHistories => Set<CargoChangeHistory>();
     public DbSet<VehicleBrand> VehicleBrands => Set<VehicleBrand>();

@@ -88,10 +88,15 @@ public interface IOrderRepository
         bool clearRescheduleProposal = false,
         Guid? rejectionReasonId = null);
 
-    Task<List<(string Reason, int OrderCount)>> GetRejectionStatisticsAsync(
+    Task<List<(DateTime Date, int RejectionCount)>> GetRejectionStatisticsAsync(
         Guid productionCompanyId,
         DateTime? dateFromUtc,
         DateTime? dateToUtcExclusive);
+
+    Task<List<(Guid OrderId, int OrderNumber, DateTime RejectedAt, string Reason)>> GetRejectionsForDayAsync(
+        Guid productionCompanyId,
+        DateTime dateFromUtc,
+        DateTime dateToUtcExclusive);
 
     Task<List<(string ProductName, int OrderCount)>> GetProductRatingAsync(
         Guid productionCompanyId,

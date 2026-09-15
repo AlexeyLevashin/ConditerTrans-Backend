@@ -4,6 +4,8 @@ using Common.Enums;
 using Contracts.Orders.Requests;
 using Contracts.Orders.Responses;
 using FluentResults;
+using Microsoft.Extensions.Caching.Distributed;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers;
@@ -11,7 +13,8 @@ namespace API.Controllers;
 [Route("api/orders")]
 public class OrderController(
     IOrderService orderService,
-    IOrderDeadlineConfirmationService deadlineConfirmationService) : BaseController
+    IOrderDeadlineConfirmationService deadlineConfirmationService,
+    IDistributedCache cache) : BaseController
 {
     [HttpGet("current")]
     public async Task<IActionResult> GetCurrent()
@@ -72,6 +75,12 @@ public class OrderController(
         [FromQuery] string? dateFrom,
         [FromQuery] string? dateTo)
     {
+        if (UserRole != UserRole.Dispatcher) return Forbid();
+        var cacheKey = $"dispatcher:rejections:{CompanyId}:{dateFrom ?? "all"}:{dateTo ?? "all"}";
+        var cached = await cache.GetStringAsync(cacheKey);
+        if (cached is not null)
+            return Ok(JsonSerializer.Deserialize<DispatcherRejectionReportResponse>(cached));
+
         var result = await orderService.GetDispatcherRejectionReportAsync(
             UserId,
             UserRole,
@@ -81,10 +90,19 @@ public class OrderController(
 
         if (result.IsSuccess)
         {
+            await cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(result.Value),
+                new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5) });
             return Ok(result.Value);
         }
 
         return DispatcherForbidOrBadRequest(result);
+    }
+
+    [HttpGet("dispatcher/reports/refusals/{date}")]
+    public async Task<IActionResult> GetDispatcherRejectionsForDay(string date)
+    {
+        var result = await orderService.GetDispatcherRejectionsForDayAsync(UserId, UserRole, CompanyId, date);
+        return result.IsSuccess ? Ok(result.Value) : DispatcherForbidOrBadRequest(result);
     }
 
     [HttpGet("dispatcher/reports/product-rating")]

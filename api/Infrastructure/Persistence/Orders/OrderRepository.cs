@@ -540,6 +540,32 @@ public class OrderRepository(AppDbContext context) : IOrderRepository
             Comment = comment,
             RejectionReasonId = rejectionReasonId
         });
+
+        if (status == OrderStatus.Rejected && rejectionReasonId.HasValue)
+        {
+            var companyId = await context.OrderLines
+                .Where(line => line.OrderId == orderId)
+                .Select(line => line.Product!.CompanyId)
+                .FirstAsync();
+            var rejectedAt = DateTime.UtcNow;
+            var fact = await context.DispatcherRejectionFacts.FindAsync(orderId);
+            if (fact is null)
+            {
+                await context.DispatcherRejectionFacts.AddAsync(new DispatcherRejectionFact
+                {
+                    OrderId = orderId,
+                    CompanyId = companyId,
+                    RejectedAt = rejectedAt,
+                    RejectionReasonId = rejectionReasonId.Value
+                });
+            }
+            else
+            {
+                fact.CompanyId = companyId;
+                fact.RejectedAt = rejectedAt;
+                fact.RejectionReasonId = rejectionReasonId.Value;
+            }
+        }
     }
 
     public Task<List<Order>> GetOrdersNeedingDeadlineWindowOpenAsync(
@@ -616,51 +642,41 @@ public class OrderRepository(AppDbContext context) : IOrderRepository
                 .SetProperty(o => o.RequestedDeliveryDate, requestedDeliveryDate.Date));
     }
 
-    public async Task<List<(string Reason, int OrderCount)>> GetRejectionStatisticsAsync(
+    public async Task<List<(DateTime Date, int RejectionCount)>> GetRejectionStatisticsAsync(
         Guid productionCompanyId,
         DateTime? dateFromUtc,
         DateTime? dateToUtcExclusive)
     {
-        var companyOrderIds = context.Orders
-            .AsNoTracking()
-            .Where(o => o.Status == OrderStatus.Rejected)
-            .Where(o =>
-                o.OrderLines.Count > 0 &&
-                o.OrderLines.All(ol => ol.Product != null && ol.Product.CompanyId == productionCompanyId))
-            .Select(o => o.Id);
-
-        var historiesQuery = context.OrderChangeHistories
-            .AsNoTracking()
-            .Where(h => h.OrderStatus == OrderStatus.Rejected)
-            .Where(h => companyOrderIds.Contains(h.OrderId));
+        var query = context.DispatcherRejectionFacts.AsNoTracking()
+            .Where(f => f.CompanyId == productionCompanyId);
 
         if (dateFromUtc.HasValue)
         {
-            historiesQuery = historiesQuery.Where(h => h.ChangeTime >= dateFromUtc.Value);
+            query = query.Where(f => f.RejectedAt >= dateFromUtc.Value);
         }
 
         if (dateToUtcExclusive.HasValue)
         {
-            historiesQuery = historiesQuery.Where(h => h.ChangeTime < dateToUtcExclusive.Value);
+            query = query.Where(f => f.RejectedAt < dateToUtcExclusive.Value);
         }
 
-        var histories = await historiesQuery
-            .Select(h => new { h.OrderId, h.Comment, h.ChangeTime })
+        var rows = await query
+            .GroupBy(f => f.RejectedAt.Date)
+            .Select(group => new { Date = group.Key, Count = group.Count() })
+            .OrderBy(item => item.Date)
             .ToListAsync();
+        return rows.Select(item => (item.Date, item.Count)).ToList();
+    }
 
-        var reasons = histories
-            .GroupBy(h => h.OrderId)
-            .Select(group => group.OrderByDescending(item => item.ChangeTime).First())
-            .Select(item =>
-                string.IsNullOrWhiteSpace(item.Comment) ? "Причина не указана" : item.Comment.Trim())
-            .ToList();
-
-        return reasons
-            .GroupBy(reason => reason)
-            .Select(group => (Reason: group.Key, OrderCount: group.Count()))
-            .OrderByDescending(item => item.OrderCount)
-            .ThenBy(item => item.Reason)
-            .ToList();
+    public async Task<List<(Guid OrderId, int OrderNumber, DateTime RejectedAt, string Reason)>> GetRejectionsForDayAsync(
+        Guid productionCompanyId, DateTime dateFromUtc, DateTime dateToUtcExclusive)
+    {
+        var rows = await context.DispatcherRejectionFacts.AsNoTracking()
+            .Where(f => f.CompanyId == productionCompanyId && f.RejectedAt >= dateFromUtc && f.RejectedAt < dateToUtcExclusive)
+            .OrderByDescending(f => f.RejectedAt)
+            .Select(f => new { f.OrderId, f.Order.OrderNumber, f.RejectedAt, Reason = f.RejectionReason.Name })
+            .ToListAsync();
+        return rows.Select(item => (item.OrderId, item.OrderNumber, item.RejectedAt, item.Reason)).ToList();
     }
 
     public async Task<List<(string ProductName, int OrderCount)>> GetProductRatingAsync(

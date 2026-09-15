@@ -11,6 +11,8 @@ builder.Services.AddDataAccess(builder.Configuration);
 builder.Services.AddSwaggerConfiguration();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddStackExchangeRedisCache(options =>
+    options.Configuration = builder.Configuration.GetConnectionString("Redis") ?? "redis:6379");
 builder.Services.AddOrderDeadlineHangfire(builder.Configuration);
 builder.Services.AddTransient<ExceptionHandlingMiddlewares>();
 

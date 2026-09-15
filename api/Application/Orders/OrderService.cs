@@ -667,17 +667,40 @@ public class OrderService(
             period.Value.FromUtc,
             period.Value.ToUtcExclusive);
 
-        var total = stats.Sum(item => item.OrderCount);
         var result = stats.Select(item => new RejectionReportItemResponse
         {
-            Reason = item.Reason,
-            OrderCount = item.OrderCount,
-            SharePercent = total == 0
-                ? 0
-                : Math.Round(item.OrderCount * 100m / total, 1)
+            Date = item.Date,
+            RejectionCount = item.RejectionCount
         }).ToList();
 
         return Result.Ok(new DispatcherRejectionReportResponse { Result = result });
+    }
+
+    public async Task<Result<DispatcherRejectionDayResponse>> GetDispatcherRejectionsForDayAsync(
+        Guid userId, UserRole userRole, Guid productionCompanyId, string date)
+    {
+        var access = await EnsureDispatcherAsync(userId, userRole);
+        if (access.IsFailed) return Result.Fail(access.Errors);
+
+        var period = ParseReportPeriod(date, date);
+        if (period.IsFailed || !period.Value.FromUtc.HasValue || !period.Value.ToUtcExclusive.HasValue)
+            return Result.Fail("Некорректная дата (ожидается YYYY-MM-DD)");
+
+        var rows = await orderRepository.GetRejectionsForDayAsync(
+            productionCompanyId, period.Value.FromUtc.Value, period.Value.ToUtcExclusive.Value);
+        var items = rows.Select(row => new RejectionDetailItemResponse
+        {
+            OrderId = row.OrderId,
+            OrderNumber = row.OrderNumber,
+            RejectedAt = row.RejectedAt,
+            Reason = row.Reason
+        }).ToList();
+        return Result.Ok(new DispatcherRejectionDayResponse
+        {
+            Date = period.Value.FromUtc.Value,
+            Total = items.Count,
+            Items = items
+        });
     }
 
     public async Task<Result<DispatcherProductRatingReportResponse>> GetDispatcherProductRatingReportAsync(

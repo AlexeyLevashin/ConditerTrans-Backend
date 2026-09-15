@@ -193,6 +193,33 @@ namespace DataAccess.Migrations
                     b.ToTable("companies", (string)null);
                 });
 
+            modelBuilder.Entity("Domain.Entities.DispatcherRejectionFact", b =>
+                {
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("order_id");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("company_id");
+
+                    b.Property<DateTime>("RejectedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("rejected_at");
+
+                    b.Property<Guid>("RejectionReasonId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("rejection_reason_id");
+
+                    b.HasKey("OrderId");
+
+                    b.HasIndex("RejectionReasonId");
+
+                    b.HasIndex("CompanyId", "RejectedAt");
+
+                    b.ToTable("dispatcher_rejection_facts", (string)null);
+                });
+
             modelBuilder.Entity("Domain.Entities.Employee", b =>
                 {
                     b.Property<Guid>("Id")
@@ -737,6 +764,33 @@ namespace DataAccess.Migrations
                         .IsRequired();
 
                     b.Navigation("Cargo");
+                });
+
+            modelBuilder.Entity("Domain.Entities.DispatcherRejectionFact", b =>
+                {
+                    b.HasOne("Domain.Entities.Company", "Company")
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.Order", "Order")
+                        .WithOne()
+                        .HasForeignKey("Domain.Entities.DispatcherRejectionFact", "OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.RejectionReason", "RejectionReason")
+                        .WithMany()
+                        .HasForeignKey("RejectionReasonId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Company");
+
+                    b.Navigation("Order");
+
+                    b.Navigation("RejectionReason");
                 });
 
             modelBuilder.Entity("Domain.Entities.Employee", b =>
