@@ -17,6 +17,7 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.Configuration = builder.Configuration.GetConnectionString("Redis") ?? "redis:6379");
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<RejectionReportCache>();
+builder.Services.AddScoped<ProductRatingMartRefreshJob>();
 builder.Services.AddOrderDeadlineHangfire(builder.Configuration);
 builder.Services.AddTransient<ExceptionHandlingMiddlewares>();
 

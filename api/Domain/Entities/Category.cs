@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace Domain.Entities;
 
@@ -9,4 +10,7 @@ public class Category
     public Guid Id { get; set; } = Guid.CreateVersion7();
     [Column("name")]
     public string Name { get; set; }
+    
+    public Guid? ParentId { get; set; }
+    public LTree Path { get; set; }
 }

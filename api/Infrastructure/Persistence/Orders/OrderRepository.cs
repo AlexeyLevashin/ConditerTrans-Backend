@@ -1,5 +1,6 @@
 ﻿using Application.Common.Interfaces.Persistence.Repositories;
 using Application.Orders;
+using System.Data;
 using Common.Enums;
 using DataAccess;
 using Domain.Entities;
@@ -684,37 +685,56 @@ public class OrderRepository(AppDbContext context) : IOrderRepository
         DateTime? dateFromUtc,
         DateTime? dateToUtcExclusive)
     {
-        var ordersQuery = context.Orders
-            .AsNoTracking()
-            .Where(o => o.Status == OrderStatus.Confirmed)
-            .Where(o =>
-                o.OrderLines.Count > 0 &&
-                o.OrderLines.All(ol => ol.Product != null && ol.Product.CompanyId == productionCompanyId));
+        var connection = context.Database.GetDbConnection();
+        var shouldClose = connection.State != ConnectionState.Open;
+        if (shouldClose) await connection.OpenAsync();
 
-        if (dateFromUtc.HasValue)
+        try
         {
-            ordersQuery = ordersQuery.Where(o => o.CreationDate >= dateFromUtc.Value);
-        }
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                SELECT product_name, SUM(order_count)::integer AS order_count
+                FROM dispatcher_product_rating_daily
+                WHERE company_id = @company_id
+                """;
 
-        if (dateToUtcExclusive.HasValue)
+            AddParameter("@company_id", DbType.Guid, productionCompanyId);
+            if (dateFromUtc.HasValue)
+            {
+                command.CommandText += " AND order_date >= @date_from";
+                AddParameter("@date_from", DbType.Date, DateOnly.FromDateTime(dateFromUtc.Value));
+            }
+
+            if (dateToUtcExclusive.HasValue)
+            {
+                command.CommandText += " AND order_date < @date_to";
+                AddParameter("@date_to", DbType.Date, DateOnly.FromDateTime(dateToUtcExclusive.Value));
+            }
+
+            command.CommandText += " GROUP BY product_name ORDER BY order_count DESC, product_name";
+
+            var result = new List<(string ProductName, int OrderCount)>();
+            await using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                result.Add((reader.GetString(0), reader.GetInt32(1)));
+            }
+
+            return result;
+
+            void AddParameter(string name, DbType type, object value)
+            {
+                var parameter = command.CreateParameter();
+                parameter.ParameterName = name;
+                parameter.DbType = type;
+                parameter.Value = value;
+                command.Parameters.Add(parameter);
+            }
+        }
+        finally
         {
-            ordersQuery = ordersQuery.Where(o => o.CreationDate < dateToUtcExclusive.Value);
+            if (shouldClose) await connection.CloseAsync();
         }
-
-        var lines = await ordersQuery
-            .SelectMany(o => o.OrderLines)
-            .Where(ol => ol.Product != null)
-            .Select(ol => new { ol.OrderId, ProductName = ol.Product!.Name })
-            .ToListAsync();
-
-        return lines
-            .GroupBy(line => line.ProductName)
-            .Select(group => (
-                ProductName: group.Key,
-                OrderCount: group.Select(item => item.OrderId).Distinct().Count()))
-            .OrderByDescending(item => item.OrderCount)
-            .ThenBy(item => item.ProductName)
-            .ToList();
     }
 
     public async Task<List<PartnerReliabilityOrderFact>> GetPartnerReliabilityFactsAsync(

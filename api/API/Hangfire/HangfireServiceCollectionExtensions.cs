@@ -35,6 +35,11 @@ public static class HangfireServiceCollectionExtensions
             service => service.ProcessDueConfirmationsAsync(CancellationToken.None),
             "*/5 * * * *");
 
+        RecurringJob.AddOrUpdate<ProductRatingMartRefreshJob>(
+            "dispatcher-product-rating-refresh",
+            job => job.RefreshAsync(CancellationToken.None),
+            "*/5 * * * *");
+
         return app;
     }
 }

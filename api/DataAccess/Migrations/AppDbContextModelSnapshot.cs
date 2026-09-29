@@ -20,6 +20,7 @@ namespace DataAccess.Migrations
                 .HasAnnotation("ProductVersion", "10.0.8")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "ltree");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("Domain.Entities.Cargo", b =>
@@ -126,7 +127,22 @@ namespace DataAccess.Migrations
                         .HasColumnType("character varying(256)")
                         .HasColumnName("name");
 
+                    b.Property<Guid?>("ParentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("parent_id");
+
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasColumnType("ltree")
+                        .HasColumnName("path");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("ParentId");
+
+                    b.HasIndex("Path");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Path"), "gist");
 
                     b.ToTable("categories", (string)null);
                 });
@@ -764,6 +780,14 @@ namespace DataAccess.Migrations
                         .IsRequired();
 
                     b.Navigation("Cargo");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Category", b =>
+                {
+                    b.HasOne("Domain.Entities.Category", null)
+                        .WithMany()
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("Domain.Entities.DispatcherRejectionFact", b =>
