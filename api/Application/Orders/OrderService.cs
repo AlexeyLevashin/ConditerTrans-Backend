@@ -728,6 +728,10 @@ public class OrderService(
             period.Value.ToUtcExclusive);
 
         var result = stats
+            .GroupBy(item => item.ProductName)
+            .Select(group => new { ProductName = group.Key, OrderCount = group.Sum(item => item.OrderCount) })
+            .OrderByDescending(item => item.OrderCount)
+            .ThenBy(item => item.ProductName, StringComparer.Ordinal)
             .Select((item, index) => new ProductRatingItemResponse
             {
                 Rank = index + 1,
@@ -736,7 +740,15 @@ public class OrderService(
             })
             .ToList();
 
-        return Result.Ok(new DispatcherProductRatingReportResponse { Result = result });
+        var daily = stats.GroupBy(item => item.Date)
+            .OrderBy(group => group.Key)
+            .Select(group => new ProductRatingDailyItemResponse
+            {
+                Date = group.Key,
+                OrderCount = group.Sum(item => item.OrderCount)
+            }).ToList();
+
+        return Result.Ok(new DispatcherProductRatingReportResponse { Result = result, Daily = daily });
     }
 
     public async Task<Result<ManagerPartnerReliabilityResponse>> GetManagerPartnerReliabilityAsync(

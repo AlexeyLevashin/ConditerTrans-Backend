@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Runtime.InteropServices;
 using Common.Enums;
 using Domain.Entities;
@@ -12,7 +12,7 @@ public class Product
     public Guid Id { get; set; } = Guid.CreateVersion7();
 
     [Column("name")]
-    public string Name { get; set; }
+    public string Name { get; set; } = string.Empty;
     
     [Column("description")]
     public string? Description { get; set; }

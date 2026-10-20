@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations.Schema;
 using Common.Enums;
 
 namespace Domain.Entities;
@@ -9,11 +9,11 @@ public class User
     [Column("id")]
     public Guid Id { get; set; } = Guid.CreateVersion7();
     [Column("email")]
-    public string Email { get; set; }
+    public string Email { get; set; } = string.Empty;
     [Column("is_admin")]
     public bool IsAdmin { get; set; }
     [Column("password_hash")]
-    public string PasswordHash { get; set; }
+    public string PasswordHash { get; set; } = string.Empty;
     [Column("role")]
     public UserRole UserRole { get; set; }
 

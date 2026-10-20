@@ -36,4 +36,11 @@ public class DispatcherRejectionReportResponse
 public class DispatcherProductRatingReportResponse
 {
     public List<ProductRatingItemResponse> Result { get; set; } = [];
+    public List<ProductRatingDailyItemResponse> Daily { get; set; } = [];
+}
+
+public class ProductRatingDailyItemResponse
+{
+    public DateTime Date { get; set; }
+    public int OrderCount { get; set; }
 }

@@ -20,7 +20,7 @@ public sealed class AddDispatcherProductRatingDailyMart : Migration
             FROM orders o
             JOIN order_lines ol ON ol.order_id = o.id
             JOIN products p ON p.id = ol.product_id
-            WHERE o.status = 2
+            WHERE o.status = 2 or o.status = 5
               AND NOT EXISTS (
                   SELECT 1
                   FROM order_lines other_line

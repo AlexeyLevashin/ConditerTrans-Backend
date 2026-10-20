@@ -9,6 +9,7 @@ internal static class CargoMapper
 {
     public static CargoListResponse ToListDto(
         this IEnumerable<Domain.Entities.Cargo> cargos,
+        
         int totalCount,
         int page,
         int pageSize) =>

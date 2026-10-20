@@ -138,6 +138,15 @@ public class OrderController(
         return DispatcherForbidOrBadRequest(result);
     }
 
+    [HttpGet("dispatcher/reports/product-rating/{date}")]
+    public async Task<IActionResult> GetDispatcherProductRatingForDay(string date)
+    {
+        var result = await orderService.GetDispatcherProductRatingReportAsync(
+            UserId, UserRole, CompanyId, date, date);
+        if (result.IsSuccess) return Ok(result.Value);
+        return DispatcherForbidOrBadRequest(result);
+    }
+
     [HttpGet("dispatcher")]
     public async Task<IActionResult> GetDispatcherOrders(
         [FromQuery] string? search,

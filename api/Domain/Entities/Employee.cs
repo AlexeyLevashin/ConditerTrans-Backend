@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Domain.Entities;
 
@@ -9,16 +9,16 @@ public class Employee
     public Guid Id { get; set; } = Guid.CreateVersion7();
 
     [Column("phone")]
-    public string Phone { get; set; }
+    public string Phone { get; set; } = string.Empty;
 
     [Column("employee_number")]
-    public string EmployeeNumber { get; set; }
+    public string EmployeeNumber { get; set; } = string.Empty;
 
     [Column("surname")]
-    public string Surname { get; set; }
+    public string Surname { get; set; } = string.Empty;
 
     [Column("name")]
-    public string Name { get; set; }
+    public string Name { get; set; } = string.Empty;
 
     [Column("patronymic")]
     public string? Patronymic { get; set; }
@@ -29,5 +29,5 @@ public class Employee
     [Column("company_id")]
     public Guid CompanyId { get; set; }
 
-    public virtual Company Company { get; set; }
+    public virtual Company Company { get; set; } = null!;
 }

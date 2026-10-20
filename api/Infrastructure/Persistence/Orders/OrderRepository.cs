@@ -680,7 +680,7 @@ public class OrderRepository(AppDbContext context) : IOrderRepository
         return rows.Select(item => (item.OrderId, item.OrderNumber, item.RejectedAt, item.Reason)).ToList();
     }
 
-    public async Task<List<(string ProductName, int OrderCount)>> GetProductRatingAsync(
+    public async Task<List<(DateTime Date, string ProductName, int OrderCount)>> GetProductRatingAsync(
         Guid productionCompanyId,
         DateTime? dateFromUtc,
         DateTime? dateToUtcExclusive)
@@ -693,7 +693,7 @@ public class OrderRepository(AppDbContext context) : IOrderRepository
         {
             await using var command = connection.CreateCommand();
             command.CommandText = """
-                SELECT product_name, SUM(order_count)::integer AS order_count
+                SELECT order_date, product_name, order_count
                 FROM dispatcher_product_rating_daily
                 WHERE company_id = @company_id
                 """;
@@ -711,13 +711,13 @@ public class OrderRepository(AppDbContext context) : IOrderRepository
                 AddParameter("@date_to", DbType.Date, DateOnly.FromDateTime(dateToUtcExclusive.Value));
             }
 
-            command.CommandText += " GROUP BY product_name ORDER BY order_count DESC, product_name";
+            command.CommandText += " ORDER BY order_date, order_count DESC, product_name";
 
-            var result = new List<(string ProductName, int OrderCount)>();
+            var result = new List<(DateTime Date, string ProductName, int OrderCount)>();
             await using var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                result.Add((reader.GetString(0), reader.GetInt32(1)));
+                result.Add((DateTime.SpecifyKind(reader.GetDateTime(0), DateTimeKind.Utc), reader.GetString(1), reader.GetInt32(2)));
             }
 
             return result;

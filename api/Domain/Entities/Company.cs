@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations.Schema;
 using Common.Enums;
 
 namespace Domain.Entities;
@@ -10,19 +10,19 @@ public class Company
     public Guid Id { get; set; } = Guid.CreateVersion7();
 
     [Column("inn")]
-    public string Inn { get; set; }
+    public string Inn { get; set; } = string.Empty;
 
     [Column("email")]
-    public string Email { get; set; }
+    public string Email { get; set; } = string.Empty;
 
     [Column("phone")]
-    public string Phone { get; set; }
+    public string Phone { get; set; } = string.Empty;
 
     [Column("name")]
-    public string Name { get; set; }
+    public string Name { get; set; } = string.Empty;
 
     [Column("address")]
-    public string Address { get; set; }
+    public string Address { get; set; } = string.Empty;
 
     [Column("description")]
     public string? Description { get; set; }

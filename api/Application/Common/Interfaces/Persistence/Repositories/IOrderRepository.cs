@@ -98,7 +98,7 @@ public interface IOrderRepository
         DateTime dateFromUtc,
         DateTime dateToUtcExclusive);
 
-    Task<List<(string ProductName, int OrderCount)>> GetProductRatingAsync(
+    Task<List<(DateTime Date, string ProductName, int OrderCount)>> GetProductRatingAsync(
         Guid productionCompanyId,
         DateTime? dateFromUtc,
         DateTime? dateToUtcExclusive);
