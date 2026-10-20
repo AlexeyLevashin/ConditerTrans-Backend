@@ -16,8 +16,6 @@ RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 COPY . .
 
-CMD ["alembic", "upgrade", "head"]
-
 ENV PORT=80
 EXPOSE 80
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT}"]
+CMD ["sh", "-c", "alembic upgrade head && exec uvicorn main:app --host 0.0.0.0 --port ${PORT}"]

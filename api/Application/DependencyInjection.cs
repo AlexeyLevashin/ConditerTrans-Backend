@@ -6,6 +6,7 @@ using Application.Common.Interfaces.Services;
 using Application.Companies;
 using Application.Orders;
 using Application.Products;
+using Application.RejectionReasons;
 using Application.Transport;
 using Application.Users;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,6 +24,7 @@ public static class DependencyInjection
         services.AddScoped<ICompanyService, CompanyService>();
         services.AddScoped<ICategoryService, CategoryService>();
         services.AddScoped<IOrderService, OrderService>();
+        services.AddScoped<IRejectionReasonService, RejectionReasonService>();
         services.AddScoped<ICargoService, CargoService>();
         services.AddScoped<ITransportVehicleService, TransportVehicleService>();
         return services;

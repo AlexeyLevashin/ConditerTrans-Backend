@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace Domain.Entities;
 
@@ -8,5 +9,8 @@ public class Category
     [Column("id")]
     public Guid Id { get; set; } = Guid.CreateVersion7();
     [Column("name")]
-    public string Name { get; set; }
+    public string Name { get; set; } = string.Empty;
+    
+    public Guid? ParentId { get; set; }
+    public LTree Path { get; set; }
 }

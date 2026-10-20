@@ -62,6 +62,7 @@ public static class OrderMapper
             PaymentType = listItem.PaymentType,
             Amount = listItem.Amount,
             Reschedule = listItem.Reschedule,
+            Rejection = ToRejectionDetails(order),
             Lines = order.OrderLines
                 .Where(line => line.Product is not null)
                 .Select(ToCoordinatorLineDto)
@@ -189,6 +190,7 @@ public static class OrderMapper
             RequiresDeadlineConfirmation = listItem.RequiresDeadlineConfirmation,
             DeadlineConfirmationExpiresAt = listItem.DeadlineConfirmationExpiresAt,
             DeadlineConfirmationPhase = listItem.DeadlineConfirmationPhase,
+            Rejection = ToRejectionDetails(order),
             ProductionAddress = order.ProductionAddress,
             ProposedDeliveryDate = order.ProposedDeliveryDate,
             RescheduleReason = order.RescheduleReason,
@@ -254,6 +256,28 @@ public static class OrderMapper
             QuantityOfUnits = line.QuantityOfUnits,
             ProductPrice = product.Price,
             FormattedQuantity = FormatQuantity(product.Quantity, product.UnitsOfMeasure)
+        };
+    }
+
+    private static RejectionDetailsResponse? ToRejectionDetails(Order order)
+    {
+        var rejection = order.Histories
+            .Where(history => history.OrderStatus == OrderStatus.Rejected)
+            .OrderByDescending(history => history.ChangeTime)
+            .FirstOrDefault();
+
+        if (rejection is null)
+        {
+            return null;
+        }
+
+        return new RejectionDetailsResponse
+        {
+            ReasonId = rejection.RejectionReasonId,
+            Reason = string.IsNullOrWhiteSpace(rejection.Comment)
+                ? "Причина не указана"
+                : rejection.Comment,
+            RejectedAt = rejection.ChangeTime
         };
     }
 

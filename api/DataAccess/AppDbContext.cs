@@ -15,6 +15,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<OrderLine> OrderLines => Set<OrderLine>();
     public DbSet<OrderChangeHistory> OrderChangeHistories => Set<OrderChangeHistory>();
+    public DbSet<RejectionReason> RejectionReasons => Set<RejectionReason>();
+    public DbSet<DispatcherRejectionFact> DispatcherRejectionFacts => Set<DispatcherRejectionFact>();
     public DbSet<Cargo> Cargos => Set<Cargo>();
     public DbSet<CargoChangeHistory> CargoChangeHistories => Set<CargoChangeHistory>();
     public DbSet<VehicleBrand> VehicleBrands => Set<VehicleBrand>();
@@ -23,6 +25,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.HasPostgresExtension("ltree");
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
         base.OnModelCreating(modelBuilder);
     }

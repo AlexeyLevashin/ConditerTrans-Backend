@@ -26,6 +26,12 @@ public class OrderChangeHistoryConfiguration : IEntityTypeConfiguration<OrderCha
             .HasMaxLength(2000)
             .IsRequired(false);
 
+        builder.HasOne(h => h.RejectionReason)
+            .WithMany(reason => reason.OrderChangeHistories)
+            .HasForeignKey(h => h.RejectionReasonId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         builder.HasIndex(h => new { h.OrderStatus, h.ChangeTime });
+        builder.HasIndex(h => h.RejectionReasonId);
     }
 }

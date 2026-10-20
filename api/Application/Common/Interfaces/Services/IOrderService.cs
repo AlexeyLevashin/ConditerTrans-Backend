@@ -84,6 +84,12 @@ public interface IOrderService
         string? dateFrom,
         string? dateTo);
 
+    Task<Result<DispatcherRejectionDayResponse>> GetDispatcherRejectionsForDayAsync(
+        Guid userId,
+        UserRole userRole,
+        Guid productionCompanyId,
+        string date);
+
     Task<Result<DispatcherProductRatingReportResponse>> GetDispatcherProductRatingReportAsync(
         Guid userId,
         UserRole userRole,

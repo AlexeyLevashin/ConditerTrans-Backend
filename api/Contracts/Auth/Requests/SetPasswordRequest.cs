@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Contracts.Auth.Requests;
 
@@ -9,5 +9,5 @@ public class SetPasswordRequest
 
     [Required(ErrorMessage = "Пароль обязателен для заполнения")]
     [MinLength(6, ErrorMessage = "Длина пароля должна быть не меньше 6 символов")]
-    public string Password { get; set; }
+    public string Password { get; set; } = string.Empty;
 }

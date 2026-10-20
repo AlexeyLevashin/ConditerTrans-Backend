@@ -17,6 +17,7 @@ public class ManagerOrderListItemResponse
 
 public class ManagerOrderDetailResponse : ManagerOrderListItemResponse
 {
+    public RejectionDetailsResponse? Rejection { get; set; }
     public List<CoordinatorOrderLineResponse> Lines { get; set; } = [];
 }
 

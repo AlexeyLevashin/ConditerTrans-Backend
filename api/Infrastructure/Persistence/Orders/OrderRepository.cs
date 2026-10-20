@@ -1,5 +1,6 @@
 ﻿using Application.Common.Interfaces.Persistence.Repositories;
 using Application.Orders;
+using System.Data;
 using Common.Enums;
 using DataAccess;
 using Domain.Entities;
@@ -265,6 +266,7 @@ public class OrderRepository(AppDbContext context) : IOrderRepository
             .Where(o => o.Id == orderId && o.ManagerId == managerId)
             .Include(o => o.OrderLines)
                 .ThenInclude(ol => ol.Product)
+            .Include(o => o.Histories)
             .FirstOrDefaultAsync();
     }
 
@@ -424,6 +426,7 @@ public class OrderRepository(AppDbContext context) : IOrderRepository
     public Task<Order?> GetByIdForDispatcherAsync(Guid orderId, Guid productionCompanyId)
     {
         return BuildDispatcherOrdersQuery(productionCompanyId)
+            .Include(o => o.Histories)
             .Where(o => o.Id == orderId && o.Status != OrderStatus.Draft)
             .FirstOrDefaultAsync();
     }
@@ -483,7 +486,8 @@ public class OrderRepository(AppDbContext context) : IOrderRepository
         string? comment,
         DateTime? proposedDeliveryDate = null,
         string? rescheduleReason = null,
-        bool clearRescheduleProposal = false)
+        bool clearRescheduleProposal = false,
+        Guid? rejectionReasonId = null)
     {
         var order = await context.Orders.FirstOrDefaultAsync(o => o.Id == orderId);
         if (order is null)
@@ -534,8 +538,35 @@ public class OrderRepository(AppDbContext context) : IOrderRepository
             OrderId = orderId,
             OrderStatus = status,
             ChangeTime = DateTime.UtcNow,
-            Comment = comment
+            Comment = comment,
+            RejectionReasonId = rejectionReasonId
         });
+
+        if (status == OrderStatus.Rejected && rejectionReasonId.HasValue)
+        {
+            var companyId = await context.OrderLines
+                .Where(line => line.OrderId == orderId)
+                .Select(line => line.Product!.CompanyId)
+                .FirstAsync();
+            var rejectedAt = DateTime.UtcNow;
+            var fact = await context.DispatcherRejectionFacts.FindAsync(orderId);
+            if (fact is null)
+            {
+                await context.DispatcherRejectionFacts.AddAsync(new DispatcherRejectionFact
+                {
+                    OrderId = orderId,
+                    CompanyId = companyId,
+                    RejectedAt = rejectedAt,
+                    RejectionReasonId = rejectionReasonId.Value
+                });
+            }
+            else
+            {
+                fact.CompanyId = companyId;
+                fact.RejectedAt = rejectedAt;
+                fact.RejectionReasonId = rejectionReasonId.Value;
+            }
+        }
     }
 
     public Task<List<Order>> GetOrdersNeedingDeadlineWindowOpenAsync(
@@ -612,89 +643,98 @@ public class OrderRepository(AppDbContext context) : IOrderRepository
                 .SetProperty(o => o.RequestedDeliveryDate, requestedDeliveryDate.Date));
     }
 
-    public async Task<List<(string Reason, int OrderCount)>> GetRejectionStatisticsAsync(
+    public async Task<List<(DateTime Date, int RejectionCount)>> GetRejectionStatisticsAsync(
         Guid productionCompanyId,
         DateTime? dateFromUtc,
         DateTime? dateToUtcExclusive)
     {
-        var companyOrderIds = context.Orders
-            .AsNoTracking()
-            .Where(o => o.Status == OrderStatus.Rejected)
-            .Where(o =>
-                o.OrderLines.Count > 0 &&
-                o.OrderLines.All(ol => ol.Product != null && ol.Product.CompanyId == productionCompanyId))
-            .Select(o => o.Id);
-
-        var historiesQuery = context.OrderChangeHistories
-            .AsNoTracking()
-            .Where(h => h.OrderStatus == OrderStatus.Rejected)
-            .Where(h => companyOrderIds.Contains(h.OrderId));
+        var query = context.DispatcherRejectionFacts.AsNoTracking()
+            .Where(f => f.CompanyId == productionCompanyId);
 
         if (dateFromUtc.HasValue)
         {
-            historiesQuery = historiesQuery.Where(h => h.ChangeTime >= dateFromUtc.Value);
+            query = query.Where(f => f.RejectedAt >= dateFromUtc.Value);
         }
 
         if (dateToUtcExclusive.HasValue)
         {
-            historiesQuery = historiesQuery.Where(h => h.ChangeTime < dateToUtcExclusive.Value);
+            query = query.Where(f => f.RejectedAt < dateToUtcExclusive.Value);
         }
 
-        var histories = await historiesQuery
-            .Select(h => new { h.OrderId, h.Comment, h.ChangeTime })
+        var rows = await query
+            .GroupBy(f => f.RejectedAt.Date)
+            .Select(group => new { Date = group.Key, Count = group.Count() })
+            .OrderBy(item => item.Date)
             .ToListAsync();
-
-        var reasons = histories
-            .GroupBy(h => h.OrderId)
-            .Select(group => group.OrderByDescending(item => item.ChangeTime).First())
-            .Select(item =>
-                string.IsNullOrWhiteSpace(item.Comment) ? "Причина не указана" : item.Comment.Trim())
-            .ToList();
-
-        return reasons
-            .GroupBy(reason => reason)
-            .Select(group => (Reason: group.Key, OrderCount: group.Count()))
-            .OrderByDescending(item => item.OrderCount)
-            .ThenBy(item => item.Reason)
-            .ToList();
+        return rows.Select(item => (item.Date, item.Count)).ToList();
     }
 
-    public async Task<List<(string ProductName, int OrderCount)>> GetProductRatingAsync(
+    public async Task<List<(Guid OrderId, int OrderNumber, DateTime RejectedAt, string Reason)>> GetRejectionsForDayAsync(
+        Guid productionCompanyId, DateTime dateFromUtc, DateTime dateToUtcExclusive)
+    {
+        var rows = await context.DispatcherRejectionFacts.AsNoTracking()
+            .Where(f => f.CompanyId == productionCompanyId && f.RejectedAt >= dateFromUtc && f.RejectedAt < dateToUtcExclusive)
+            .OrderByDescending(f => f.RejectedAt)
+            .Select(f => new { f.OrderId, f.Order.OrderNumber, f.RejectedAt, Reason = f.RejectionReason.Name })
+            .ToListAsync();
+        return rows.Select(item => (item.OrderId, item.OrderNumber, item.RejectedAt, item.Reason)).ToList();
+    }
+
+    public async Task<List<(DateTime Date, string ProductName, int OrderCount)>> GetProductRatingAsync(
         Guid productionCompanyId,
         DateTime? dateFromUtc,
         DateTime? dateToUtcExclusive)
     {
-        var ordersQuery = context.Orders
-            .AsNoTracking()
-            .Where(o => o.Status == OrderStatus.Confirmed)
-            .Where(o =>
-                o.OrderLines.Count > 0 &&
-                o.OrderLines.All(ol => ol.Product != null && ol.Product.CompanyId == productionCompanyId));
+        var connection = context.Database.GetDbConnection();
+        var shouldClose = connection.State != ConnectionState.Open;
+        if (shouldClose) await connection.OpenAsync();
 
-        if (dateFromUtc.HasValue)
+        try
         {
-            ordersQuery = ordersQuery.Where(o => o.CreationDate >= dateFromUtc.Value);
-        }
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                SELECT order_date, product_name, order_count
+                FROM dispatcher_product_rating_daily
+                WHERE company_id = @company_id
+                """;
 
-        if (dateToUtcExclusive.HasValue)
+            AddParameter("@company_id", DbType.Guid, productionCompanyId);
+            if (dateFromUtc.HasValue)
+            {
+                command.CommandText += " AND order_date >= @date_from";
+                AddParameter("@date_from", DbType.Date, DateOnly.FromDateTime(dateFromUtc.Value));
+            }
+
+            if (dateToUtcExclusive.HasValue)
+            {
+                command.CommandText += " AND order_date < @date_to";
+                AddParameter("@date_to", DbType.Date, DateOnly.FromDateTime(dateToUtcExclusive.Value));
+            }
+
+            command.CommandText += " ORDER BY order_date, order_count DESC, product_name";
+
+            var result = new List<(DateTime Date, string ProductName, int OrderCount)>();
+            await using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                result.Add((DateTime.SpecifyKind(reader.GetDateTime(0), DateTimeKind.Utc), reader.GetString(1), reader.GetInt32(2)));
+            }
+
+            return result;
+
+            void AddParameter(string name, DbType type, object value)
+            {
+                var parameter = command.CreateParameter();
+                parameter.ParameterName = name;
+                parameter.DbType = type;
+                parameter.Value = value;
+                command.Parameters.Add(parameter);
+            }
+        }
+        finally
         {
-            ordersQuery = ordersQuery.Where(o => o.CreationDate < dateToUtcExclusive.Value);
+            if (shouldClose) await connection.CloseAsync();
         }
-
-        var lines = await ordersQuery
-            .SelectMany(o => o.OrderLines)
-            .Where(ol => ol.Product != null)
-            .Select(ol => new { ol.OrderId, ProductName = ol.Product!.Name })
-            .ToListAsync();
-
-        return lines
-            .GroupBy(line => line.ProductName)
-            .Select(group => (
-                ProductName: group.Key,
-                OrderCount: group.Select(item => item.OrderId).Distinct().Count()))
-            .OrderByDescending(item => item.OrderCount)
-            .ThenBy(item => item.ProductName)
-            .ToList();
     }
 
     public async Task<List<PartnerReliabilityOrderFact>> GetPartnerReliabilityFactsAsync(

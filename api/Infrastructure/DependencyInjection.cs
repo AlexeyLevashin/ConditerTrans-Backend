@@ -15,6 +15,7 @@ using Infrastructure.Persistence.Employees;
 using Infrastructure.Persistence.Invitation;
 using Infrastructure.Persistence.Orders;
 using Infrastructure.Persistence.Products;
+using Infrastructure.Persistence.RejectionReasons;
 using Infrastructure.Orders;
 using Infrastructure.Persistence.TransportVehicles;
 using Infrastructure.Persistence.Users;
@@ -41,6 +42,7 @@ public static class DependencyInjection
         services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IOrderRepository, OrderRepository>();
+        services.AddScoped<IRejectionReasonRepository, RejectionReasonRepository>();
         services.AddScoped<ICargoRepository, CargoRepository>();
         services.AddScoped<ITransportVehicleRepository, TransportVehicleRepository>();
         services.AddScoped<IOrderDeadlineConfirmationService, OrderDeadlineConfirmationService>();
@@ -105,6 +107,17 @@ public static class DependencyInjection
 
                 options.Events = new JwtBearerEvents
                 {
+                    OnMessageReceived = context =>
+                    {
+                        var accessToken = context.Request.Query["access_token"];
+                        if (!string.IsNullOrEmpty(accessToken) &&
+                            context.HttpContext.Request.Path.StartsWithSegments("/api/hubs"))
+                        {
+                            context.Token = accessToken;
+                        }
+
+                        return Task.CompletedTask;
+                    },
                     OnAuthenticationFailed = context =>
                     {
                         var logger = context.HttpContext.RequestServices

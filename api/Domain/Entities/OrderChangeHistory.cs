@@ -21,5 +21,9 @@ public class OrderChangeHistory
     [Column("comment")]
     public string? Comment { get; set; }
 
+    [Column("rejection_reason_id")]
+    public Guid? RejectionReasonId { get; set; }
+
     public virtual Order Order { get; set; } = null!;
+    public virtual RejectionReason? RejectionReason { get; set; }
 }

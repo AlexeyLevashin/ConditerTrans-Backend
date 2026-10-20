@@ -1,9 +1,13 @@
 ﻿using API.Controllers.Abstractions;
+using API.Hubs;
+using API.Reports;
 using Application.Common.Interfaces.Services;
 using Common.Enums;
 using Contracts.Orders.Requests;
 using Contracts.Orders.Responses;
 using FluentResults;
+using System.Globalization;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers;
@@ -11,7 +15,9 @@ namespace API.Controllers;
 [Route("api/orders")]
 public class OrderController(
     IOrderService orderService,
-    IOrderDeadlineConfirmationService deadlineConfirmationService) : BaseController
+    IOrderDeadlineConfirmationService deadlineConfirmationService,
+    RejectionReportCache rejectionReportCache,
+    IHubContext<ReportsHub> reportsHub) : BaseController
 {
     [HttpGet("current")]
     public async Task<IActionResult> GetCurrent()
@@ -72,6 +78,12 @@ public class OrderController(
         [FromQuery] string? dateFrom,
         [FromQuery] string? dateTo)
     {
+        if (UserRole != UserRole.Dispatcher) return Forbid();
+        var reportKey = $"range:{dateFrom ?? "all"}:{dateTo ?? "all"}";
+        var (cacheVersion, cached) = await rejectionReportCache.GetAsync<DispatcherRejectionReportResponse>(
+            CompanyId, reportKey, HttpContext.RequestAborted);
+        if (cached is not null) return Ok(cached);
+
         var result = await orderService.GetDispatcherRejectionReportAsync(
             UserId,
             UserRole,
@@ -81,10 +93,29 @@ public class OrderController(
 
         if (result.IsSuccess)
         {
+            await rejectionReportCache.SetAsync(
+                CompanyId, cacheVersion, reportKey, result.Value, HttpContext.RequestAborted);
             return Ok(result.Value);
         }
 
         return DispatcherForbidOrBadRequest(result);
+    }
+
+    [HttpGet("dispatcher/reports/refusals/{date}")]
+    public async Task<IActionResult> GetDispatcherRejectionsForDay(string date)
+    {
+        if (UserRole != UserRole.Dispatcher) return Forbid();
+        var reportKey = $"day:{date}";
+        var (cacheVersion, cached) = await rejectionReportCache.GetAsync<DispatcherRejectionDayResponse>(
+            CompanyId, reportKey, HttpContext.RequestAborted);
+        if (cached is not null) return Ok(cached);
+
+        var result = await orderService.GetDispatcherRejectionsForDayAsync(UserId, UserRole, CompanyId, date);
+        if (result.IsFailed) return DispatcherForbidOrBadRequest(result);
+
+        await rejectionReportCache.SetAsync(
+            CompanyId, cacheVersion, reportKey, result.Value, HttpContext.RequestAborted);
+        return Ok(result.Value);
     }
 
     [HttpGet("dispatcher/reports/product-rating")]
@@ -104,6 +135,15 @@ public class OrderController(
             return Ok(result.Value);
         }
 
+        return DispatcherForbidOrBadRequest(result);
+    }
+
+    [HttpGet("dispatcher/reports/product-rating/{date}")]
+    public async Task<IActionResult> GetDispatcherProductRatingForDay(string date)
+    {
+        var result = await orderService.GetDispatcherProductRatingReportAsync(
+            UserId, UserRole, CompanyId, date, date);
+        if (result.IsSuccess) return Ok(result.Value);
         return DispatcherForbidOrBadRequest(result);
     }
 
@@ -264,6 +304,20 @@ public class OrderController(
     public async Task<IActionResult> RejectDispatcherOrder(Guid id, RejectDispatcherOrderRequest request)
     {
         var result = await orderService.RejectDispatcherOrderAsync(UserId, UserRole, CompanyId, id, request);
+        if (result.IsSuccess && result.Value.Rejection is { } rejection)
+        {
+            // The order is already committed at this point; request cancellation must not leave Redis stale.
+            var version = await rejectionReportCache.InvalidateAsync(CompanyId, CancellationToken.None);
+            await reportsHub.Clients.Group(ReportsHub.CompanyGroup(CompanyId)).SendAsync(
+                "ReportChanged",
+                new
+                {
+                    Date = rejection.RejectedAt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                    OrderId = id,
+                    Version = version
+                });
+        }
+
         return DispatcherDetailResult(result);
     }
 

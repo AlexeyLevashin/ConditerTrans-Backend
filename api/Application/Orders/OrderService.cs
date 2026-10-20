@@ -16,6 +16,7 @@ public class OrderService(
     IUserRepository userRepository,
     IProductRepository productRepository,
     ICompanyRepository companyRepository,
+    IRejectionReasonRepository rejectionReasonRepository,
     IUnitOfWork unitOfWork) : IOrderService
 {
     private const string DispatcherOnlyError = "Доступно только диспетчеру производства";
@@ -400,9 +401,15 @@ public class OrderService(
         Guid orderId,
         RejectDispatcherOrderRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Reason))
+        if (request.ReasonId == Guid.Empty)
         {
             return Result.Fail("Причина отказа обязательна");
+        }
+
+        var reason = await rejectionReasonRepository.GetAvailableByIdAsync(request.ReasonId, productionCompanyId);
+        if (reason is null)
+        {
+            return Result.Fail("Причина отказа не найдена или недоступна для вашей компании");
         }
 
         return await ChangeDispatcherOrderStatusAsync(
@@ -412,8 +419,9 @@ public class OrderService(
             orderId,
             allowedStatuses: [OrderStatus.PendingApproval, OrderStatus.Rescheduled],
             newStatus: OrderStatus.Rejected,
-            comment: request.Reason.Trim(),
-            setProductionAddress: false);
+            comment: reason.Name,
+            setProductionAddress: false,
+            rejectionReasonId: reason.Id);
     }
 
     public async Task<Result<DispatcherOrderDetailResponse>> RescheduleDispatcherOrderAsync(
@@ -581,7 +589,8 @@ public class OrderService(
         string? comment,
         bool setProductionAddress,
         DateTime? proposedDeliveryDate = null,
-        string? rescheduleReason = null)
+        string? rescheduleReason = null,
+        Guid? rejectionReasonId = null)
     {
         var access = await EnsureDispatcherAsync(userId, userRole);
         if (access.IsFailed)
@@ -620,7 +629,8 @@ public class OrderService(
             comment,
             proposedDeliveryDate,
             rescheduleReason,
-            clearRescheduleProposal: false);
+            clearRescheduleProposal: false,
+            rejectionReasonId: rejectionReasonId);
 
         await unitOfWork.SaveChangesAsync();
 
@@ -657,17 +667,40 @@ public class OrderService(
             period.Value.FromUtc,
             period.Value.ToUtcExclusive);
 
-        var total = stats.Sum(item => item.OrderCount);
         var result = stats.Select(item => new RejectionReportItemResponse
         {
-            Reason = item.Reason,
-            OrderCount = item.OrderCount,
-            SharePercent = total == 0
-                ? 0
-                : Math.Round(item.OrderCount * 100m / total, 1)
+            Date = item.Date,
+            RejectionCount = item.RejectionCount
         }).ToList();
 
         return Result.Ok(new DispatcherRejectionReportResponse { Result = result });
+    }
+
+    public async Task<Result<DispatcherRejectionDayResponse>> GetDispatcherRejectionsForDayAsync(
+        Guid userId, UserRole userRole, Guid productionCompanyId, string date)
+    {
+        var access = await EnsureDispatcherAsync(userId, userRole);
+        if (access.IsFailed) return Result.Fail(access.Errors);
+
+        var period = ParseReportPeriod(date, date);
+        if (period.IsFailed || !period.Value.FromUtc.HasValue || !period.Value.ToUtcExclusive.HasValue)
+            return Result.Fail("Некорректная дата (ожидается YYYY-MM-DD)");
+
+        var rows = await orderRepository.GetRejectionsForDayAsync(
+            productionCompanyId, period.Value.FromUtc.Value, period.Value.ToUtcExclusive.Value);
+        var items = rows.Select(row => new RejectionDetailItemResponse
+        {
+            OrderId = row.OrderId,
+            OrderNumber = row.OrderNumber,
+            RejectedAt = row.RejectedAt,
+            Reason = row.Reason
+        }).ToList();
+        return Result.Ok(new DispatcherRejectionDayResponse
+        {
+            Date = period.Value.FromUtc.Value,
+            Total = items.Count,
+            Items = items
+        });
     }
 
     public async Task<Result<DispatcherProductRatingReportResponse>> GetDispatcherProductRatingReportAsync(
@@ -695,6 +728,10 @@ public class OrderService(
             period.Value.ToUtcExclusive);
 
         var result = stats
+            .GroupBy(item => item.ProductName)
+            .Select(group => new { ProductName = group.Key, OrderCount = group.Sum(item => item.OrderCount) })
+            .OrderByDescending(item => item.OrderCount)
+            .ThenBy(item => item.ProductName, StringComparer.Ordinal)
             .Select((item, index) => new ProductRatingItemResponse
             {
                 Rank = index + 1,
@@ -703,7 +740,15 @@ public class OrderService(
             })
             .ToList();
 
-        return Result.Ok(new DispatcherProductRatingReportResponse { Result = result });
+        var daily = stats.GroupBy(item => item.Date)
+            .OrderBy(group => group.Key)
+            .Select(group => new ProductRatingDailyItemResponse
+            {
+                Date = group.Key,
+                OrderCount = group.Sum(item => item.OrderCount)
+            }).ToList();
+
+        return Result.Ok(new DispatcherProductRatingReportResponse { Result = result, Daily = daily });
     }
 
     public async Task<Result<ManagerPartnerReliabilityResponse>> GetManagerPartnerReliabilityAsync(

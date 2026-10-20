@@ -120,6 +120,11 @@ public class AuthService(
         }
     
         var user = invitation.User;
+        if (user is null)
+        {
+            return Result.Fail("Пользователь не найден");
+        }
+
         user.PasswordHash = passwordService.Hash(request.Password);
     
         invitation.IsUsed = true;

@@ -2,9 +2,23 @@ namespace Contracts.Orders.Responses;
 
 public class RejectionReportItemResponse
 {
+    public DateTime Date { get; set; }
+    public int RejectionCount { get; set; }
+}
+
+public class RejectionDetailItemResponse
+{
+    public Guid OrderId { get; set; }
+    public int OrderNumber { get; set; }
+    public DateTime RejectedAt { get; set; }
     public string Reason { get; set; } = null!;
-    public int OrderCount { get; set; }
-    public decimal SharePercent { get; set; }
+}
+
+public class DispatcherRejectionDayResponse
+{
+    public DateTime Date { get; set; }
+    public int Total { get; set; }
+    public List<RejectionDetailItemResponse> Items { get; set; } = [];
 }
 
 public class ProductRatingItemResponse
@@ -22,4 +36,11 @@ public class DispatcherRejectionReportResponse
 public class DispatcherProductRatingReportResponse
 {
     public List<ProductRatingItemResponse> Result { get; set; } = [];
+    public List<ProductRatingDailyItemResponse> Daily { get; set; } = [];
+}
+
+public class ProductRatingDailyItemResponse
+{
+    public DateTime Date { get; set; }
+    public int OrderCount { get; set; }
 }

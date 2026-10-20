@@ -2,12 +2,25 @@
 # Usage: docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
 
 services:
-  logistic-service:
-    env_file:
-      - ./logistic-service/.env.local
+  nginx:
     environment:
-      LOGISTIC_APP_ENV: local
-  
+      NGINX_CONFIG_MODE: local
+
+  redis:
+    ports:
+      - "127.0.0.1:6379:6379"
+
+  file-service:
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: mydatabase
+      DB_USER: postgres
+      DB_PASS: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   api:
     build:
       context: ./api
@@ -15,4 +28,11 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=mydatabase;Username=postgres;Password=postgres
+      ConnectionStrings__Redis: redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks: [backend]
